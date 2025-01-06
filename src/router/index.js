@@ -46,6 +46,12 @@ const routes = [
     component: () => import('../views/Consultorios.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/generate-qr',
+    name: 'consul',
+    component: () => import('../components/Qrcode.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = new VueRouter({

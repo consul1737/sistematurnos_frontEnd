@@ -47,6 +47,13 @@
           </v-list-item-icon>
           <v-list-item-title>Notificaciones</v-list-item-title>
         </v-list-item>
+
+        <v-list-item to="/generate-qr">
+          <v-list-item-icon>
+            <v-icon>mdi-bell</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Conexion</v-list-item-title>
+        </v-list-item>
   
         <!-- Cerrar Sesión -->
         <v-list-item @click="logout">

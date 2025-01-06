@@ -45,6 +45,12 @@
                   prepend-icon="mdi-city"
                   v-model="user.ciudad">
                 </v-text-field>
+              
+                <v-text-field
+                  label="Direccion"
+                  prepend-icon="mdi-city"
+                  v-model="user.direccion">
+                </v-text-field>
   
                 <v-text-field
                   label="Pais"
@@ -129,6 +135,7 @@
         telefono: '',
         ciudad: '',
         pais: '',
+        direccion: '',
         password: '',
         rol_id: ''
       },
