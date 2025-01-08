@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- Mostrar NavBar solo si hay sesión activa -->
-    <NavBar v-if="isAuthenticated" />
+    <NavBar  />
 
     <!-- Contenido principal -->
     <v-main>
