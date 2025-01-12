@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- Mostrar NavBar solo si hay sesión activa -->
-    <NavBar  />
+    <NavBar v-if="isAuthenticated" />
 
     <!-- Contenido principal -->
     <v-main>
@@ -11,23 +11,23 @@
 </template>
 
 <script>
-import NavBar from './components/NavBar.vue';
+import NavBar from "./components/sidebar/NavBar.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
-    NavBar
+    NavBar,
   },
   data() {
     return {
-      isAuthenticated: !!sessionStorage.getItem('session') // Verificar autenticación
+      isAuthenticated: !!sessionStorage.getItem("session"), // Verificar autenticación
     };
   },
   watch: {
     // Escuchar cambios de ruta para actualizar autenticación
     $route() {
-      this.isAuthenticated = !!sessionStorage.getItem('session');
-    }
-  }
+      this.isAuthenticated = !!sessionStorage.getItem("session");
+    },
+  },
 };
 </script>

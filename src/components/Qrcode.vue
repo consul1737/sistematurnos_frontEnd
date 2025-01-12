@@ -11,7 +11,12 @@
       </div>
     </v-card-text>
     <v-card-actions>
-      <v-btn color="primary" :loading="loading" :disabled="loading" @click="fetchQR">
+      <v-btn
+        color="primary"
+        :loading="loading"
+        :disabled="loading"
+        @click="fetchQR"
+      >
         Obtener QR
       </v-btn>
     </v-card-actions>
@@ -35,7 +40,9 @@ export default {
       try {
         this.error = null;
         const response = await axios.get("/generate-qr");
+        console.log("res", response);
         const qrCode = response.data?.qrCode;
+        console.log(qrCode);
         if (!qrCode) {
           throw new Error("El servidor no devolvió un código QR válido.");
         }

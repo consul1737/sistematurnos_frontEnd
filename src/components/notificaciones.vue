@@ -82,7 +82,8 @@
           required
         />
         <v-alert type="info" class="mt-3">
-          Puedes usar los siguientes marcadores en el mensaje para personalizarlo:
+          Puedes usar los siguientes marcadores en el mensaje para
+          personalizarlo:
           <ul>
             <li><b>{PACIENTE}</b>: Nombre del paciente</li>
             <li><b>{CONSULTORIO}</b>: Nombre del consultorio</li>
@@ -93,68 +94,72 @@
         </v-alert>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="enviarNotificaciones">Enviar Notificaciones</v-btn>
+        <v-btn color="primary" @click="enviarNotificaciones"
+          >Enviar Notificaciones</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-container>
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
   data() {
     return {
       menuFechaFiltro: false,
-      filtroFecha: '', // Fecha seleccionada para filtrar turnos
+      filtroFecha: "", // Fecha seleccionada para filtrar turnos
       turnos: [], // Lista de turnos cargados desde el backend
       turnosSeleccionados: [], // Lista de turnos seleccionados por el usuario
-      mensaje: '', // Mensaje base para enviar notificaciones
+      mensaje: "", // Mensaje base para enviar notificaciones
     };
   },
   methods: {
     // Cargar turnos desde el backend
     async cargarTurnos() {
       try {
-        const response = await axios.get('/Calendarturnos', {
+        const response = await axios.get("/Calendarturnos", {
           params: { fecha: this.filtroFecha }, // Filtrar por fecha si se especifica
         });
         this.turnos = response.data;
       } catch (error) {
-        console.error('Error al cargar turnos:', error);
-        this.$toast.error('Error al cargar los turnos.');
+        console.error("Error al cargar turnos:", error);
+        this.$toast.error("Error al cargar los turnos.");
       }
     },
     // Enviar notificaciones a los turnos seleccionados
     async enviarNotificaciones() {
       if (!this.mensaje || this.turnosSeleccionados.length === 0) {
         this.$toast.error(
-          'Por favor, seleccione al menos un turno y escriba un mensaje.'
+          "Por favor, seleccione al menos un turno y escriba un mensaje."
         );
         return;
       }
 
       try {
         // Crear una lista de turnos seleccionados con idTurno y numero
-        const turnosConTelefono = this.turnos.filter(turno =>
-          this.turnosSeleccionados.includes(turno.id_turno)
-        ).map(turno => ({
-          idTurno: turno.id_turno,
-          numero: turno.telefono, // Asegúrate de que el número está disponible
-        }));
+        const turnosConTelefono = this.turnos
+          .filter((turno) => this.turnosSeleccionados.includes(turno.id_turno))
+          .map((turno) => ({
+            idTurno: turno.id_turno,
+            numero: turno.telefono, // Asegúrate de que el número está disponible
+          }));
+          console.log();
 
         // Enviar notificaciones al backend con los turnos seleccionados
-        const response = await axios.post('/enviar-notificaciones', {
+        const response = await axios.post("/enviar-notificaciones", {
           turnos: turnosConTelefono, // Enviar la lista con el formato adecuado
           mensajeBase: this.mensaje, // El mensaje base puede contener placeholders
         });
+        console.log(response);
 
-        this.$toast.success('Notificaciones enviadas con éxito.');
+        this.$toast.success("Notificaciones enviadas con éxito.");
         this.turnosSeleccionados = []; // Limpiar selección
-        this.mensaje = ''; // Limpiar mensaje
+        this.mensaje = ""; // Limpiar mensaje
       } catch (error) {
-        console.error('Error al enviar notificaciones:', error);
-        this.$toast.error('Error al enviar las notificaciones.');
+        console.error("Error al enviar notificaciones:", error);
+        this.$toast.error("Error al enviar las notificaciones.");
       }
     },
   },
