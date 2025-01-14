@@ -145,7 +145,7 @@ export default {
             idTurno: turno.id_turno,
             numero: turno.telefono, // Asegúrate de que el número está disponible
           }));
-          console.log();
+        console.log();
 
         // Enviar notificaciones al backend con los turnos seleccionados
         const response = await axios.post("/enviar-notificaciones", {
