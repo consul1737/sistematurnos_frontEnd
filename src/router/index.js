@@ -49,7 +49,7 @@ const routes = [
   {
     path: '/generate-qr',
     name: 'consul',
-    component: () => import('../components/Qrcode.vue'),
+    component: () => import('../views/MyWhatsapp.vue'),
     meta: { requiresAuth: true }
   },
 ];
