@@ -1,5 +1,5 @@
 // src/config/fields.js
-import { nameRules, emailRules, passwordRules } from "../../../utils/validationRules";
+import { nameRules, emailRules, passwordRules } from "@/utils/validationRules";
 
 export const signupFields = [
   { name: "nombre", label: "Name", icon: "mdi-account", rules: nameRules },

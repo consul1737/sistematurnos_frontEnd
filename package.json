@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
+    "@mdi/font": "^7.4.47",
     "axios": "^1.7.7",
     "core-js": "^3.40.0",
     "vue": "^2.6.14",

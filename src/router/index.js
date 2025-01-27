@@ -36,7 +36,7 @@ const routes = [
   {
     path: '/Pacientes',
     name: 'Pacientes',
-    component: () => import('../components/Pacientes.vue'),
+    component: () => import('../components/pacientes/Pacientes.vue'),
     meta: { requiresAuth: true }
   },
 

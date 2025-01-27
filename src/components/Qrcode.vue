@@ -13,12 +13,16 @@
     </v-card-text>
     <v-card-actions>
       <v-btn
-        color="primary"
+        color="#2E7D32"
+        class="text-none text-subtitle-1"
+        size="small"
+        variant="flat"
         :loading="loading"
         :disabled="loading"
         @click="fetchQR"
+        style="color: azure"
       >
-        Obtener QR
+        Vincular cuenta de whatsapp
       </v-btn>
     </v-card-actions>
   </v-card>
@@ -35,16 +39,38 @@ export default {
       error: null,
       isFetching: false,
       checkInterval: null,
-      codigoPedido: false,
     };
+  },
+  mounted() {
+    this.startFetchingQR(); // Inicia la actualización periódica al montar el componente
   },
 
   methods: {
+    // Función para empezar a recibir el QR cada 30 segundos
+    startFetchingQR() {
+      if (this.checkInterval) return; // Evita que se inicie múltiples veces
+
+      this.fetchQR();
+
+      this.checkInterval = setInterval(async () => {
+        // Solo continúa si no se ha leído el QR
+        if (this.error === "Ya tienes una cuenta asociada con Whatsapp.") {
+          this.stopFetchingQR(); // Detiene la actualización periódica si el QR fue leído
+          return;
+        }
+        await this.fetchQR();
+      }, 20000); // 20 segundos
+    },
+
+    // Detiene la actualización periódica
+    stopFetchingQR() {
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+    },
     async fetchQR() {
-      if (this.isFetching) return;
-      this.codigoPedido = true;
       this.loading = true;
-      this.isFetching = true;
       try {
         this.error = null;
         this.qrUrl = null; // Reinicia el QR mientras se genera
@@ -60,16 +86,17 @@ export default {
           return; // Detiene la ejecución si no hay un QR aún
         }
 
-        if (!data?.qrCode) {
-          throw new Error("El servidor no devolvió un código QR válido.");
-        }
+        if (!response.data?.isReady) {
+          if (!data?.qrCode) {
+            throw new Error("El servidor no devolvió un código QR válido.");
+          }
 
-        this.qrUrl = data.qrCode;
-        this.error = null;
+          this.qrUrl = data.qrCode;
+          this.error = null;
 
-        // Inicia la verificación periódica
-        if (this.codigoPedido) {
-          this.startCheckingStatus();
+          // Inicia la verificación periódica
+        } else {
+          this.error = "Ya tienes una cuenta asociada con Whatsapp.";
         }
       } catch (error) {
         console.error("Error al generar el QR:", error);
@@ -77,42 +104,8 @@ export default {
         this.qrUrl = null;
       } finally {
         this.loading = false;
-        this.isFetching = false;
       }
     },
-
-    startCheckingStatus() {
-      // Verifica cada 3 segundos si el QR fue leído
-      this.checkInterval = setInterval(async () => {
-        try {
-          const response = await axios.get("/check-qr-status"); // Endpoint para verificar el estado
-          const isRead = response.data?.isRead;
-          console.log("Respuesta del servidor2 :", response.data);
-
-          if (isRead) {
-            // Si el QR fue leído, detén el intervalo
-            this.stopCheckingStatus();
-            this.error = "El QR fue leído correctamente.";
-          }
-        } catch (error) {
-          console.error("Error al verificar el estado del QR:", error);
-          this.error = "Error al verificar el estado. Intenta nuevamente.";
-        }
-      }, 5000); // Intervalo de 3 segundos
-    },
-
-    stopCheckingStatus() {
-      // Detiene el intervalo
-      if (this.checkInterval) {
-        clearInterval(this.checkInterval);
-        this.checkInterval = null;
-      }
-    },
-  },
-
-  beforeDestroy() {
-    // Asegúrate de limpiar el intervalo si el componente se destruye
-    this.stopCheckingStatus();
   },
 };
 </script>

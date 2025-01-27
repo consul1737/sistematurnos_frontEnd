@@ -35,8 +35,8 @@
 <script>
 // import { nameRules, emailRules, passwordRules } from "@/utils/validationRules";
 import MyAlerts from "../MyAlerts.vue";
-import BaseInput from "../formulario/BaseInput.vue";
-import { signupFields } from "../formulario/logic/formSingUp";
+import BaseInput from "./formulario/BaseInput.vue";
+import { signupFields } from "./formulario/logic/formSingUp";
 
 export default {
   components: { MyAlerts, BaseInput },
