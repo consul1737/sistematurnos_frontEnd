@@ -1,38 +1,56 @@
 <template>
-  <v-navigation-drawer app permanent>
-    <v-list>
+  <v-navigation-drawer
+    v-model="drawer"
+    expand-on-hover
+    rail
+    :mini-variant="isMini"
+    @mouseenter="isMini = false"
+    @mouseleave="isMini = true"
+  >
+    <v-list class="mt-10" nav>
       <v-list-item
         v-for="(item, i) in menuItems"
         :key="i"
-        :to="item.to ? item.to : null"
-        @click="item.isLogout ? logout() : null"
+        :to="item.to"
+        :value="item"
+        :prepend-icon="item.icon"
+        :title="item.title"
         exact
       >
-        <v-list-item-icon>
-          <v-icon>{{ item.icon }}</v-icon>
-        </v-list-item-icon>
-        <v-list-item-title>{{ item.title }}</v-list-item-title>
       </v-list-item>
     </v-list>
+    <template v-slot:append>
+      <div class="pa-2">
+        <transition name="fade">
+          <v-btn block @click="handleClick">
+            <span v-if="isMini"><v-icon color="primary">mdi-logout</v-icon></span>
+            <span v-else>Logout</span>
+          </v-btn>
+        </transition>
+      </div>
+    </template>
   </v-navigation-drawer>
 </template>
 
-<script>
-import { getMenuItems } from "@/components/sidebar/logic/menuItems.js";
+<script lang="ts" setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { getMenuItems } from './logic/menuItems.ts'
+import { useAuth } from '../../composables/useAuth.ts'
 
-export default {
-  name: "NavBar",
-  data() {
-    console.log(getMenuItems()[7].onClick);
-    return {
-      menuItems: getMenuItems(),
-    };
-  },
-  methods: {
-    logout() {
-      sessionStorage.removeItem("session"); // Remover la sesión
-      this.$router.push("/"); // Redirigir al login o a la página principal
-    },
-  },
-};
+const { logout } = useAuth()
+
+// define var reactivas
+const menuItems = ref(getMenuItems())
+
+const router = useRouter()
+
+const drawer = ref(true) // Controla la apertura/cierre del drawer
+const isMini = ref(true) // Controla si el drawer está en modo mini
+
+// Logout funcion
+const handleClick = () => {
+  logout()
+  router.push('/') // Redirect to login or main page
+}
 </script>

@@ -1,33 +1,36 @@
 <template>
-  <v-app>
+  <v-app theme="light">
     <!-- Mostrar NavBar solo si hay sesión activa -->
     <NavBar v-if="isAuthenticated" />
 
     <!-- Contenido principal -->
     <v-main>
-      <router-view />
+      <v-container>
+        <transition name="fade">
+          <router-view />
+        </transition>
+      </v-container>
     </v-main>
   </v-app>
 </template>
 
-<script>
-import NavBar from "./components/sidebar/NavBar.vue";
+<script lang="ts" setup>
+import NavBar from './components/sidebar/NavBar.vue'
+import { useAuth } from './composables/useAuth'
 
-export default {
-  name: "App",
-  components: {
-    NavBar,
-  },
-  data() {
-    return {
-      isAuthenticated: !!sessionStorage.getItem("session"), // Verificar autenticación
-    };
-  },
-  watch: {
-    // Escuchar cambios de ruta para actualizar autenticación
-    $route() {
-      this.isAuthenticated = !!sessionStorage.getItem("session");
-    },
-  },
-};
+const { isAuthenticated } = useAuth()
 </script>
+
+<style>
+body {
+  font-family: 'Roboto Flex', sans-serif;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

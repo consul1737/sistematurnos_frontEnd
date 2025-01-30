@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <MyAlerts v-model:alert="alert" :timeout="3000" />
     <v-card>
       <v-card-title>Sign Up</v-card-title>
       <v-card-text>
@@ -28,65 +29,60 @@
         </v-form>
       </v-card-text>
     </v-card>
-    <MyAlerts :alert.sync="alert" />
   </v-container>
 </template>
 
-<script>
-// import { nameRules, emailRules, passwordRules } from "@/utils/validationRules";
-import MyAlerts from "../MyAlerts.vue";
-import BaseInput from "./formulario/BaseInput.vue";
-import { signupFields } from "./formulario/logic/formSingUp";
+<script lang="ts" setup>
+import { ref } from 'vue'
+import MyAlerts from '../MyAlerts.vue'
+import BaseInput from './form/BaseInput.vue'
+import { signupFields } from './form/logic/formSingUp'
+import axios from 'axios' // Asegúrate de tener axios importado correctamente
 
-export default {
-  components: { MyAlerts, BaseInput },
-  data() {
-    return {
-      user: {
-        nombre: "",
-        email: "",
-        telefono: "",
-        ciudad: "",
-        direccion: "",
-        pais: "",
-        password: "",
-        rol_id: 2,
-      },
-      fields: signupFields,
-      alert: {
-        show: false,
-        type: "",
-        message: "",
-      },
-    };
-  },
-  methods: {
-    async signup() {
-      let valid = this.$refs.signupForm.validate();
-      console.log(valid);
+// Declaración de los datos reactivamente
+const user = ref({
+  nombre: '',
+  email: '',
+  telefono: '',
+  ciudad: '',
+  direccion: '',
+  pais: '',
+  password: '',
+  rol_id: 2,
+})
 
-      if (!valid) {
-        this.alert = {
-          show: true,
-          type: "error",
-          message: "Por favor complete todos los campos correctamente.",
-        };
-        return; // Detén la ejecución si no es válido
-      }
-      if (valid) {
-        try {
-          const res = await this.axios.post("/signup", this.user);
-          this.$refs.signupForm.reset();
-          //   console.log(res);
-        } catch (error) {
-          this.alert = {
-            show: true,
-            type: "error",
-            message: "Ocurrió un error en el registro.",
-          };
-        }
-      }
-    },
-  },
-};
+const fields = signupFields // Los campos definidos en formSingUp.js
+const alert = ref({
+  show: false,
+  type: '',
+  message: '',
+})
+
+// Método para realizar el registro de usuario
+const signup = async () => {
+  const form = ref(null)
+  const valid = form.value.validate()
+  console.log(valid)
+
+  if (!valid) {
+    alert.value = {
+      show: true,
+      type: 'error',
+      message: 'Por favor complete todos los campos correctamente.',
+    }
+    return
+  }
+
+  try {
+    await axios.post('/signup', user.value)
+    form.value.reset()
+    // Aquí puedes agregar algo más si el registro es exitoso, como redirigir o mostrar un mensaje
+  } catch (err) {
+    alert.value = {
+      show: true,
+      type: 'error',
+      message: 'Ocurrió un error en el registro.' + err,
+    }
+  }
+}
 </script>
