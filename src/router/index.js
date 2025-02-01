@@ -22,6 +22,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/calendario',
+    name: 'calendario',
+    component: () => import('../components/MyCalendar.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/turnos',
     name: 'turnos',
     component: () => import('../components/calendarioTurnos.vue'),
