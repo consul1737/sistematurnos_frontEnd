@@ -208,7 +208,7 @@ export default {
     },
     async cargarTurnos() {
       try {
-        const response = await axios.get("/Calendarturnos", {
+        const response = await axios.get("/turnos/calendario", {
           params: { fecha: this.filtroFecha }, // Pasar la fecha seleccionada para filtrar
         });
         this.turnos = response.data;

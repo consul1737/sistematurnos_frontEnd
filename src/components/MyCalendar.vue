@@ -164,7 +164,7 @@ export default {
   methods: {
     async cargarTurnos() {
       try {
-        const response = await axios.get("/Calendarturnos");
+        const response = await axios.get("/turnos/calendario");
         this.turnos = response.data;
         console.log("Turnos cargados:", this.turnos);
 
