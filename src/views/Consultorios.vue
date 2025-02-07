@@ -282,8 +282,16 @@
             v-model="descripcion"
             label="Descripción"
           ></v-text-field>
-          <v-text-field v-model="precio" label="Precio"></v-text-field>
-          <v-text-field v-model="duracion" label="Duración"></v-text-field>
+          <v-text-field
+            v-model="precio"
+            type="number"
+            label="Precio"
+          ></v-text-field>
+          <v-text-field
+            v-model="duracion"
+            type="number"
+            label="Duración"
+          ></v-text-field>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -315,7 +323,7 @@
         <v-card-text>
           <p class="text-h6 font-weight-bold ma-4">
             ¿Estás seguro de que deseas eliminar el tratamiento
-            {{ consultorioToDelete?.nombre }}?
+            {{ tratamientoToDelete?.nombre }}?
           </p>
         </v-card-text>
         <v-card-actions>
@@ -326,7 +334,10 @@
             @click="eliminarTratamientoDialog = false"
             >Cancelar</v-btn
           >
-          <v-btn color="red darken-1" text @click="confirmarEliminacion"
+          <v-btn
+            color="red darken-1"
+            text
+            @click="confirmarEliminacionTratamiento"
             >Eliminar</v-btn
           >
         </v-card-actions>
@@ -355,6 +366,8 @@ export default {
       tipoTratamientos: [],
       consultorioToEdit: null,
       consultorioToDelete: null,
+      tratamientoToEdit: null,
+      tratamientoToDelete: null,
       newTratamiento: "",
       descripcion: "",
       precio: "",
@@ -374,7 +387,9 @@ export default {
     async fetchTratamientos() {
       try {
         const response = await axios.get("/tratamientos");
-        this.tipoTratamientos = response.data;
+        this.tipoTratamientos = response.data.sort(
+          (a, b) => a.id_tratamiento - b.id_tratamiento
+        );
         // console.log("Tratamientos cargados:", this.tipoTratamientos);
       } catch (error) {
         console.error("Error fetching tratamientos:", error);
@@ -399,8 +414,6 @@ export default {
               : [], // Si no hay tratamiento, devuelve un array vacío
           }))
           .sort((a, b) => a.id_consultorio - b.id_consultorio);
-
-        console.log("Consultorios cargados:", this.consultorios);
       } catch (error) {
         console.error("Error fetching consultorios and tratamientos:", error);
       }
@@ -431,6 +444,7 @@ export default {
 
     handleCreateConsultorio() {
       this.dialog = !this.dialog;
+      this.isEdit = false;
     },
 
     async editarConsultorio(consultorio) {
@@ -449,10 +463,7 @@ export default {
     },
 
     async updateConsultorio() {
-      console.log("ID del consultorio a actualizar:", this.consultorioToEdit);
       try {
-        console.log("ID del consultorio a actualizar:", this.consultorioToEdit);
-
         const response = await axios.put(
           `/consultorios/${this.consultorioToEdit}`,
           {
@@ -490,23 +501,52 @@ export default {
 
     async editarTratamiento(tratamiento) {
       this.isEdit = true;
-      this.consultorioToEdit = tratamiento.id_tratamiento; // Guarda el ID del tratamiento
+      this.tratamientoToEdit = tratamiento.id_tratamiento; // Guarda el ID del tratamiento
       this.tratamientoDialog = true;
+      this.newTratamiento = tratamiento.nombre;
+      this.descripcion = tratamiento.descripcion;
+      this.precio = tratamiento.costo;
+      this.duracion = tratamiento.duracion;
+    },
+
+    async confirmarEliminacionTratamiento() {
+      await this.eliminarTratamiento(this.tratamientoToDelete);
+      this.eliminarTratamientoDialog = false;
     },
 
     async borrarTratamiento(tratamiento) {
       this.eliminarTratamientoDialog = true;
-      this.consultorioToDelete = tratamiento;
+      this.tratamientoToDelete = tratamiento;
+    },
+    async eliminarTratamiento(tratamiento) {
+      try {
+        await axios.delete(`/tratamientos/${tratamiento.id_tratamiento}`);
+        await this.fetchTratamientos(); // Actualiza la lista de consultorios
+      } catch (error) {
+        if (error.response) {
+          // Manejar errores específicos del backend
+          if (error.response.status === 400) {
+            alert(error.response.data.message); // Mostrar mensaje de error
+          } else if (error.response.status === 404) {
+            alert("Tratamiento no encontrado");
+          } else {
+            alert("Error al eliminar el tratamiento");
+          }
+        } else {
+          console.error("Error desconocido:", error.message);
+        }
+      }
     },
 
     handleCreateTratamiento() {
       this.tratamientoDialog = !this.tratamientoDialog;
+      this.isEdit = false;
     },
 
-    async createTratamiento() {
+    async createTratamiento(tratamiento) {
       if (this.isEdit) {
         // Modo edición: Actualizar el consultorio existente
-        await this.updateTratamiento(this.consultorio);
+        await this.updateTratamiento(tratamiento);
       } else {
         // Modo creación: Crear un nuevo consultorio
         await this.addTratamiento();
@@ -532,11 +572,11 @@ export default {
     async updateTratamiento() {
       try {
         const response = await axios.put(
-          `/tratamientos/${this.consultorioToEdit}`,
+          `/tratamientos/${this.tratamientoToEdit}`,
           {
             nombre: this.newTratamiento,
             descripcion: this.descripcion,
-            precio: this.precio,
+            costo: this.precio,
             duracion: this.duracion,
           }
         );
@@ -554,6 +594,17 @@ export default {
         this.selectedColor = null;
         this.selectedTratamiento = null;
         this.consultorioToEdit = null;
+        this.isEdit = false;
+      }
+    },
+    tratamientoDialog(newVal) {
+      if (!newVal) {
+        // Limpiar datos cuando se cierra el diálogo
+        this.newTratamiento = "";
+        this.descripcion = "";
+        this.precio = "";
+        this.duracion = "";
+        this.tratamientoToEdit = null;
         this.isEdit = false;
       }
     },
