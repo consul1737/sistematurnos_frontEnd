@@ -2,6 +2,7 @@
   <v-container>
     <h1 class="text-h4">Gestionar Consultorios</h1>
     <v-row class="ma-11">
+      <!--agregar consultorios-->
       <v-col>
         <v-card
           outlined
@@ -16,6 +17,7 @@
           >
         </v-card>
       </v-col>
+      <!--agregar tratamientos-->
       <v-col class="d-flex flex-column justify-start">
         <v-card
           outlined
@@ -25,14 +27,14 @@
           <v-card-subtitle
             >Agrega un tratamiento para gestionar sus turnos</v-card-subtitle
           >
-          <v-btn outlined color="primary" dark @click="handleCreateConsultorio"
+          <v-btn outlined color="primary" dark @click="handleCreateTratamiento"
             >+ Agregar Tratamiento</v-btn
           >
         </v-card>
       </v-col>
     </v-row>
-    <
     <v-row class="ma-11 d-flex justify-lg-space-around">
+      <!--listado de consultorios-->
       <v-col cols="6" md="4">
         <h3>Listado de Consultorios</h3>
         <v-hover
@@ -87,18 +89,48 @@
           </v-card>
         </v-hover>
       </v-col>
+      <!--listado de tratamientos-->
       <v-col cols="6" md="4">
         <h3>Listado de Tratamientos</h3>
-        <v-card
+        <v-hover
           v-for="tratamiento in tipoTratamientos"
           :key="tratamiento.id_tratamiento"
-          color="primary"
-          outlined
+          v-slot:default="{ hover }"
         >
-          <v-card-title class="text-h6">{{ tratamiento.nombre }}</v-card-title>
-        </v-card>
+          <v-card class="position-relative" outlined>
+            <v-card-title class="text-h6">{{
+              tratamiento.nombre.toUpperCase()
+            }}</v-card-title>
+
+            <!-- Botones que aparecen al pasar el mouse -->
+            <div
+              class="position-absolute top-0 right-0 pa-2 transition-ease-in-out"
+              style="z-index: 10"
+              :style="{ opacity: hover ? 1 : 0 }"
+            >
+              <v-btn
+                color="#222222"
+                icon
+                small
+                @click="editarTratamiento(tratamiento)"
+              >
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+              <v-btn
+                color="#222222"
+                icon
+                small
+                class="ml-2"
+                @click="borrarTratamiento(tratamiento)"
+              >
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </div>
+          </v-card>
+        </v-hover>
       </v-col>
     </v-row>
+    <!--dialog para editar/crear consultorio-->
     <v-dialog
       v-model="dialog"
       scrollable
@@ -116,9 +148,6 @@
           }}</v-toolbar-title>
         </v-toolbar>
         <v-card-text>
-          <span class="font-weight-bold ma-2 text-h6"
-            >#{{ this.consultorioToEdit.id_consultorio }}</span
-          >
           <v-text-field
             v-model="newConsultorio"
             label="Nombre del Consultorio"
@@ -188,8 +217,117 @@
           <v-btn color="blue darken-1" text @click="dialog = false"
             >Cancelar</v-btn
           >
-          <v-btn color="blue darken-1" text @click="createConsultorio"
-            >Guardar</v-btn
+          <v-btn color="blue darken-1" text @click="createConsultorio">{{
+            isEdit ? "Editar" : "Guardar"
+          }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <!--  dialog para eliminar-->
+    <v-dialog
+      v-model="eliminarDialog"
+      scrollable
+      persistent
+      :overlay="false"
+      max-width="500px"
+      transition="dialog-transition"
+    >
+      <v-card>
+        <v-toolbar flat height="50px" tile dark color="primary">
+          <v-btn icon dark @click="eliminarDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>Eliminar Consultorio</v-toolbar-title>
+        </v-toolbar>
+        <v-card-text>
+          <p class="text-h6 font-weight-bold ma-4">
+            ¿Estás seguro de que deseas eliminar el consultorio
+            {{ consultorioToDelete?.nombre }}?
+          </p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="eliminarDialog = false"
+            >Cancelar</v-btn
+          >
+          <v-btn color="red darken-1" text @click="confirmarEliminacion"
+            >Eliminar</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <!--dialog para editar/crear Tratamiento-->
+    <v-dialog
+      v-model="tratamientoDialog"
+      scrollable
+      width="35vw"
+      persistent
+      transition="slide-x-transition"
+    >
+      <v-card>
+        <v-toolbar flat height="50px" tile dark color="primary">
+          <v-btn icon dark @click="tratamientoDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>{{
+            isEdit ? "Editar Tratamiento" : "Agregar Tratamiento"
+          }}</v-toolbar-title>
+        </v-toolbar>
+        <v-card-text>
+          <v-text-field
+            v-model="newTratamiento"
+            label="Nombre del Tratamiento"
+          ></v-text-field>
+          <v-text-field
+            v-model="descripcion"
+            label="Descripción"
+          ></v-text-field>
+          <v-text-field v-model="precio" label="Precio"></v-text-field>
+          <v-text-field v-model="duracion" label="Duración"></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="tratamientoDialog = false"
+            >Cancelar</v-btn
+          >
+          <v-btn color="blue darken-1" text @click="createTratamiento">{{
+            isEdit ? "Editar" : "Guardar"
+          }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <!--  dialog para eliminar tratamiento-->
+    <v-dialog
+      v-model="eliminarTratamientoDialog"
+      scrollable
+      persistent
+      :overlay="false"
+      max-width="500px"
+      transition="dialog-transition"
+    >
+      <v-card>
+        <v-toolbar flat height="50px" tile dark color="primary">
+          <v-btn icon dark @click="eliminarTratamientoDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>Eliminar Tratamiento</v-toolbar-title>
+        </v-toolbar>
+        <v-card-text>
+          <p class="text-h6 font-weight-bold ma-4">
+            ¿Estás seguro de que deseas eliminar el tratamiento
+            {{ consultorioToDelete?.nombre }}?
+          </p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="blue darken-1"
+            text
+            @click="eliminarTratamientoDialog = false"
+            >Cancelar</v-btn
+          >
+          <v-btn color="red darken-1" text @click="confirmarEliminacion"
+            >Eliminar</v-btn
           >
         </v-card-actions>
       </v-card>
@@ -208,10 +346,19 @@ export default {
       consultorios: [],
       selectedTratamiento: "",
       dialog: false, // Estado para abrir/cerrar el diálogo
+      tratamientoDialog: false,
       isEdit: false,
+      eliminarDialog: false,
+      eliminarTratamientoDialog: false,
       newConsultorio: "", // Nombre del nuevo consultorio
+      newTratamiento: "",
       tipoTratamientos: [],
       consultorioToEdit: null,
+      consultorioToDelete: null,
+      newTratamiento: "",
+      descripcion: "",
+      precio: "",
+      duracion: "",
     };
   },
   methods: {
@@ -236,20 +383,23 @@ export default {
     async fetchConsultoriosyTratamientos() {
       try {
         const response = await axios.get("/consultorios/tratamientos");
-        this.consultorios = response.data.map((consultorio) => ({
-          id_consultorio: consultorio.id_consultorio,
-          nombre: consultorio.nombre_consultorio,
-          color: consultorio.color_consultorio,
-          tratamiento: consultorio.id_tratamiento
-            ? [
-                {
-                  id_tratamiento: consultorio.id_tratamiento,
-                  nombre: consultorio.nombre_tratamiento,
-                  descripcion: consultorio.descripcion_tratamiento,
-                },
-              ]
-            : [], // Si no hay tratamiento, devuelve un array vacío
-        }));
+        this.consultorios = response.data
+          .map((consultorio) => ({
+            id_consultorio: consultorio.id_consultorio,
+            nombre: consultorio.nombre_consultorio,
+            color: consultorio.color_consultorio,
+            tratamiento: consultorio.id_tratamiento
+              ? [
+                  {
+                    id_tratamiento: consultorio.id_tratamiento,
+                    nombre: consultorio.nombre_tratamiento,
+                    descripcion: consultorio.descripcion_tratamiento,
+                  },
+                ]
+              : [], // Si no hay tratamiento, devuelve un array vacío
+          }))
+          .sort((a, b) => a.id_consultorio - b.id_consultorio);
+
         console.log("Consultorios cargados:", this.consultorios);
       } catch (error) {
         console.error("Error fetching consultorios and tratamientos:", error);
@@ -299,7 +449,10 @@ export default {
     },
 
     async updateConsultorio() {
+      console.log("ID del consultorio a actualizar:", this.consultorioToEdit);
       try {
+        console.log("ID del consultorio a actualizar:", this.consultorioToEdit);
+
         const response = await axios.put(
           `/consultorios/${this.consultorioToEdit}`,
           {
@@ -308,9 +461,88 @@ export default {
             tratamiento: this.selectedTratamiento, // ID del tratamiento seleccionado
           }
         );
-        this.fetchConsultoriosyTratamientos(); // Actualiza la lista de consultorios
+        await this.fetchConsultoriosyTratamientos(); // Actualiza la lista de consultorios
       } catch (error) {
         console.error("Error al actualizar el consultorio:", error);
+      }
+    },
+
+    async borrarConsultorio(consultorio) {
+      this.eliminarDialog = true;
+      this.consultorioToDelete = consultorio;
+    },
+
+    async confirmarEliminacion() {
+      await this.eliminarConsultorio(this.consultorioToDelete);
+      this.eliminarDialog = false;
+    },
+
+    async eliminarConsultorio(consultorio) {
+      try {
+        await axios.delete(`/consultorios/${consultorio.id_consultorio}`);
+        await this.fetchConsultoriosyTratamientos(); // Actualiza la lista de consultorios
+      } catch (error) {
+        console.error("Error al eliminar el consultorio:", error);
+      }
+    },
+
+    // Tratamientos
+
+    async editarTratamiento(tratamiento) {
+      this.isEdit = true;
+      this.consultorioToEdit = tratamiento.id_tratamiento; // Guarda el ID del tratamiento
+      this.tratamientoDialog = true;
+    },
+
+    async borrarTratamiento(tratamiento) {
+      this.eliminarTratamientoDialog = true;
+      this.consultorioToDelete = tratamiento;
+    },
+
+    handleCreateTratamiento() {
+      this.tratamientoDialog = !this.tratamientoDialog;
+    },
+
+    async createTratamiento() {
+      if (this.isEdit) {
+        // Modo edición: Actualizar el consultorio existente
+        await this.updateTratamiento(this.consultorio);
+      } else {
+        // Modo creación: Crear un nuevo consultorio
+        await this.addTratamiento();
+      }
+      this.tratamientoDialog = false; // Cerrar el diálogo
+    },
+
+    async addTratamiento() {
+      try {
+        const response = await axios.post("/tratamientos", {
+          nombre: this.newTratamiento,
+          descripcion: this.descripcion,
+          costo: this.precio,
+          duracion: this.duracion,
+        });
+        this.fetchTratamientos(); // Actualiza la lista de tratamientos
+        this.tratamientoDialog = false; // Cierra el diálogo
+      } catch (error) {
+        console.error("Error al crear el tratamiento:", error);
+      }
+    },
+
+    async updateTratamiento() {
+      try {
+        const response = await axios.put(
+          `/tratamientos/${this.consultorioToEdit}`,
+          {
+            nombre: this.newTratamiento,
+            descripcion: this.descripcion,
+            precio: this.precio,
+            duracion: this.duracion,
+          }
+        );
+        await this.fetchTratamientos(); // Actualiza la lista de tratamientos
+      } catch (error) {
+        console.error("Error al actualizar el tratamiento:", error);
       }
     },
   },
