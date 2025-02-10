@@ -44,21 +44,33 @@
         >
           <v-card class="mb-2 position-relative" outlined>
             <!-- Nombre del consultorio -->
-            <v-card-title class="text-h6">{{
-              consultorio.nombre
-            }}</v-card-title>
+            <v-card-title class="text-h6">
+              {{ consultorio.nombre }}
+            </v-card-title>
+
             <!-- Listado de tratamientos en un solo card -->
             <v-card-subtitle>
-              <div v-if="consultorio.tratamientos.length > 0">
-                <div
+              <div
+                v-if="
+                  consultorio.tratamientos &&
+                  consultorio.tratamientos.length > 0
+                "
+              >
+                <!-- Itera sobre los tratamientos -->
+                <v-chip
                   v-for="tratamiento in consultorio.tratamientos"
                   :key="tratamiento.id_tratamiento"
+                  :color="tratamiento.color"
+                  text-color="black"
+                  class="mb-1 mr-1"
                 >
-                  {{ tratamiento.nombre }}
-                </div>
+                  <strong>{{ tratamiento.nombre }}</strong> -
+                  {{ tratamiento.descripcion }} ({{ tratamiento.duracion }})
+                </v-chip>
               </div>
               <div v-else>No hay tratamientos asociados.</div>
             </v-card-subtitle>
+
             <!-- Botones de edición/borrado -->
             <div
               class="position-absolute top-0 end-0 pa-2 transition-swing"
@@ -157,13 +169,46 @@
             label="Tratamientos"
             :items="tipoTratamientos"
             :item-text="(item) => item.nombre"
-            :item-value="(item) => `${item.id_tratamiento}`"
+            :item-value="(item) => item.id_tratamiento"
             outlined
             dense
             multiple
             chips
+            closable-chips
             required
-          ></v-select>
+          >
+            <!-- Slot para personalizar los elementos seleccionados -->
+            <template v-slot:selection="{ item, index }">
+              <v-chip
+                v-if="index < 3"
+                :key="item.id_tratamiento"
+                :color="item.color"
+                small
+                class="ma-1"
+                close
+                @click:close="removeTratamiento(item)"
+              >
+                {{ item.nombre }}
+              </v-chip>
+              <span v-if="index === 3"
+                >+{{ selectedTratamientos.length - 3 }} más</span
+              >
+            </template>
+
+            <!-- Slot para personalizar los elementos en la lista desplegable -->
+            <template v-slot:item="{ item }">
+              <v-list-item-content>
+                <v-list-item-title>
+                  <v-avatar
+                    size="12"
+                    :color="item.color"
+                    class="mr-2"
+                  ></v-avatar>
+                  {{ item.nombre }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </template>
+          </v-select>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -376,6 +421,12 @@ export default {
     };
   },
   methods: {
+    removeTratamiento(item) {
+      // Filtra el tratamiento eliminado del array
+      this.selectedTratamientos = this.selectedTratamientos.filter(
+        (id) => id !== item.id_tratamiento
+      );
+    },
     closeDialog() {
       this.dialog = false;
     },
@@ -401,22 +452,19 @@ export default {
     async fetchConsultoriosyTratamientos() {
       try {
         const response = await axios.get("/consultorios/tratamientos");
+        console.log(response.data);
         this.consultorios = response.data
           .map((consultorio) => ({
             id_consultorio: consultorio.id_consultorio,
             nombre: consultorio.nombre_consultorio,
-            tratamiento: consultorio.id_tratamiento
-              ? [
-                  {
-                    id_tratamiento: consultorio.id_tratamiento,
-                    nombre: consultorio.nombre_tratamiento,
-                    descripcion: consultorio.descripcion_tratamiento,
-                    costo: consultorio.costo_tratamiento,
-                    duracion: consultorio.duracion_tratamiento,
-                    color: consultorio.color_tratamiento,
-                  },
-                ]
-              : [], // Si no hay tratamiento, devuelve un array vacío
+            tratamientos: consultorio.tratamientos.map((tratamiento) => ({
+              id_tratamiento: tratamiento.id_tratamiento,
+              nombre: tratamiento.nombre,
+              descripcion: tratamiento.descripcion,
+              costo: tratamiento.costo,
+              duracion: tratamiento.duracion,
+              color: tratamiento.color,
+            })),
           }))
           .sort((a, b) => a.id_consultorio - b.id_consultorio);
 
@@ -460,14 +508,19 @@ export default {
       this.dialog = true; // Abre el diálogo
       this.newConsultorio = consultorio.nombre;
 
-      // Asigna el ID del tratamiento seleccionado
-      if (consultorio.tratamiento.length > 0) {
-        this.selectedTratamientos = consultorio.tratamiento[0].id_tratamiento; // Extrae el ID del tratamiento
+      // Asigna los tratamientos completos (con nombre y color)
+      if (consultorio.tratamientos.length > 0) {
+        this.selectedTratamientos = consultorio.tratamientos.map(
+          (tratamiento) => ({
+            id_tratamiento: tratamiento.id_tratamiento,
+            nombre: tratamiento.nombre,
+            color: tratamiento.color,
+          })
+        );
       } else {
-        this.selectedTratamientos = null; // Si no hay tratamiento, asigna null
+        this.selectedTratamientos = []; // Si no hay tratamientos, asigna un array vacío
       }
     },
-
     async updateConsultorio() {
       console.log(
         "ID del consultorio a actualizar:",
@@ -507,6 +560,7 @@ export default {
     },
 
     async eliminarConsultorio(consultorio) {
+      console.log("ID del consultorio a eliminar:", consultorio.id_consultorio);
       try {
         await axios.delete(`/consultorios/${consultorio.id_consultorio}`);
         await this.fetchConsultoriosyTratamientos(); // Actualiza la lista de consultorios
@@ -540,7 +594,8 @@ export default {
     async eliminarTratamiento(tratamiento) {
       try {
         await axios.delete(`/tratamientos/${tratamiento.id_tratamiento}`);
-        await this.fetchTratamientos(); // Actualiza la lista de consultorios
+        await this.fetchTratamientos();
+        await this.fetchConsultoriosyTratamientos(); // Actualiza la lista de consultorios
       } catch (error) {
         if (error.response) {
           // Manejar errores específicos del backend
@@ -613,7 +668,7 @@ export default {
         // Limpiar datos cuando se cierra el diálogo
         this.newConsultorio = "";
         this.selectedColor = null;
-        this.selectedTratamiento = null;
+        this.selectedTratamientos = null;
         this.consultorioToEdit = null;
         this.isEdit = false;
       }

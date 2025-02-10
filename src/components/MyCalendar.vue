@@ -146,8 +146,8 @@
             isEdit ? "Editar Turno" : "Nuevo Turno"
           }}</v-toolbar-title>
         </v-toolbar>
-
         <v-card-text class="pa-4">
+          <!-- Selector de Paciente -->
           <v-autocomplete
             label="Paciente"
             v-model="nuevoTurno.id_paciente"
@@ -158,19 +158,49 @@
             dense
             required
           />
+
+          <!-- Selector de Consultorio -->
           <v-select
             label="Consultorio"
             :items="consultorios"
-            item-text="displayText"
-            item-value="id_consultorio_tratamiento"
+            item-text="nombre"
+            item-value="id_consultorio"
             v-model="nuevoTurno.id_consultorio"
+            @change="cargarTratamientosPorConsultorio"
             outlined
             dense
             required
           >
             <template v-slot:item="{ item }">
               <div style="display: flex; align-items: center">
-                <!-- Punto de color -->
+                <div
+                  :style="{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: item.color || '#ccc',
+                    marginRight: '8px',
+                  }"
+                ></div>
+                <span>{{ item.nombre }}</span>
+              </div>
+            </template>
+          </v-select>
+
+          <!-- Selector de Tratamientos -->
+          <v-select
+            label="Tratamiento"
+            :items="tratamientosDisponibles"
+            item-text="nombre_tratamiento"
+            item-value="id_tratamiento"
+            v-model="nuevoTurno.id_tratamiento"
+            @change="actualizarDetallesTratamiento"
+            outlined
+            dense
+            required
+          >
+            <template v-slot:item="{ item }">
+              <div style="display: flex; align-items: center">
                 <div
                   :style="{
                     width: '12px',
@@ -180,11 +210,12 @@
                     marginRight: '8px',
                   }"
                 ></div>
-                <!-- Nombre del consultorio -->
-                <span>{{ item.displayText }}</span>
+                <span>{{ item.nombre_tratamiento }}</span>
               </div>
-            </template></v-select
-          >
+            </template>
+          </v-select>
+
+          <!-- Selector de Fecha -->
           <v-menu
             ref="menuFecha"
             v-model="menuFecha"
@@ -214,6 +245,8 @@
               :header-date-format="formatHeaderDate"
             ></v-date-picker>
           </v-menu>
+
+          <!-- Selector de Hora -->
           <v-menu
             ref="menuHora"
             v-model="menuHora"
@@ -241,6 +274,8 @@
               format="24hr"
             ></v-time-picker>
           </v-menu>
+
+          <!-- Duración y Costo del Tratamiento -->
           <v-text-field
             label="Duración del Tratamiento"
             v-model="tratamientoSeleccionado.duracion"
@@ -249,7 +284,6 @@
             readonly
             suffix="minutos"
           ></v-text-field>
-
           <v-text-field
             label="Costo del Tratamiento"
             v-model="tratamientoSeleccionado.costo"
@@ -259,7 +293,6 @@
             readonly
           ></v-text-field>
         </v-card-text>
-
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn
@@ -299,6 +332,11 @@ export default {
     isEdit: false,
     pacientes: [],
     consultorios: [],
+    tratamientosDisponibles: [],
+    tratamientoSeleccionado: {
+      duracion: null,
+      costo: null,
+    },
     nuevoTurno: {
       id_paciente: null,
       fecha: "",
@@ -435,6 +473,37 @@ export default {
       } catch (error) {
         console.error("Error fetching consultorios and tratamientos:", error);
       }
+    },
+    async cargarTratamientosPorConsultorio(id_consultorio) {
+      try {
+        // Llamar al backend para obtener los tratamientos asociados al consultorio
+        const response = await axios.get(
+          `/tratamientos/tratamientosconsul/${id_consultorio}`
+        );
+        this.tratamientosDisponibles = response.data || [];
+
+        // Reiniciar el tratamiento seleccionado y sus detalles
+        this.nuevoTurno.id_tratamiento = null;
+        this.tratamientoSeleccionado = { duracion: null, costo: null };
+      } catch (error) {
+        console.error("Error al cargar tratamientos:", error.message);
+        this.tratamientosDisponibles = [];
+      }
+    },
+    actualizarDetallesTratamiento() {
+      const tratamiento = this.tratamientosDisponibles.find(
+        (t) => t.id_tratamiento === this.nuevoTurno.id_tratamiento
+      );
+      console.log(tratamiento);
+      if (tratamiento) {
+        this.tratamientoSeleccionado = {
+          duracion: tratamiento.duracion,
+          costo: tratamiento.costo,
+        };
+      } else {
+        this.tratamientoSeleccionado = { duracion: null, costo: null };
+      }
+      this.$forceUpdate();
     },
   },
 
