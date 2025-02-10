@@ -295,11 +295,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn
-            color="success"
-            :disabled="!validarDatosTurno"
-            @click="guardarTurno"
-          >
+          <v-btn color="success" @click="guardarTurno">
             {{ isEdit ? "Guardar Cambios" : "Guardar Turno" }}
           </v-btn>
         </v-card-actions>
@@ -342,7 +338,8 @@ export default {
       fecha: "",
       hora: "",
       estado: "pendiente",
-      id_consultorio_tratamiento: null,
+      id_consultorio: null,
+      id_tratamiento: null,
     },
     menuFecha: false,
     menuFechaFiltro: false,
@@ -505,6 +502,37 @@ export default {
       }
       this.$forceUpdate();
     },
+    guardarTurno() {
+      if (isEdit) {
+        this.updateTurno(this.nuevoTurno);
+      } else {
+        this.createTurno(this.nuevoTurno);
+      }
+    },
+    async createTurno(turno) {
+      try {
+        const response = await axios.post("/turnos", turno);
+        this.$toast.success(response.data.message || "Turno creado con éxito.");
+      } catch (error) {
+        console.error("Error al crear el turno:", error);
+        const errorMessage =
+          error.response?.data?.message || "Error al crear el turno.";
+        this.$toast.error(errorMessage);
+      }
+    },
+    async updateTurno(turno) {
+      try {
+        const response = await axios.put(`/turnos/${turno.id_turno}`, turno);
+        this.$toast.success(
+          response.data.message || "Turno actualizado con éxito."
+        );
+      } catch (error) {
+        console.error("Error al actualizar el turno:", error);
+        const errorMessage =
+          error.response?.data?.message || "Error al actualizar el turno.";
+        this.$toast.error(errorMessage);
+      }
+    },
   },
 
   mounted() {
@@ -577,11 +605,15 @@ export default {
       return this.nuevoTurno.hora;
     },
     validarDatosTurno() {
+      // Verificar que todos los campos requeridos estén presentes y sean válidos
       return (
-        this.nuevoTurno.id_paciente &&
-        this.nuevoTurno.id_consultorio &&
-        this.nuevoTurno.fecha &&
-        this.nuevoTurno.hora
+        !!this.nuevoTurno.id_paciente && // Asegurarse de que haya un paciente seleccionado
+        !!this.nuevoTurno.id_consultorio && // Asegurarse de que haya un consultorio seleccionado
+        !!this.nuevoTurno.id_tratamiento && // Asegurarse de que haya un tratamiento seleccionado
+        !!this.nuevoTurno.fecha && // Asegurarse de que haya una fecha seleccionada
+        !!this.nuevoTurno.hora && // Asegurarse de que haya una hora seleccionada
+        this.nuevoTurno.fecha.trim() !== "" && // Asegurarse de que la fecha no sea una cadena vacía
+        this.nuevoTurno.hora.trim() !== "" // Asegurarse de que la hora no sea una cadena vacía
       );
     },
   },
