@@ -27,12 +27,12 @@ const routes = [
     component: () => import('../components/MyCalendar.vue'),
     meta: { requiresAuth: true }
   },
-  {
-    path: '/turnos',
-    name: 'turnos',
-    component: () => import('../components/calendarioTurnos.vue'),
-    meta: { requiresAuth: true }
-  },
+  // {
+  //   path: '/turnos',
+  //   name: 'turnos',
+  //   component: () => import('../components/calendarioTurnos.vue'),
+  //   meta: { requiresAuth: true }
+  // },
   {
     path: '/notifi',
     name: 'notifi',

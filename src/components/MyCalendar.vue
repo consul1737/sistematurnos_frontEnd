@@ -16,7 +16,12 @@
         >
         <v-divider></v-divider>
         <v-row justify="center">
-          <v-date-picker v-model="picker" no-title full-width></v-date-picker>
+          <v-date-picker
+            v-model="picker"
+            no-title
+            full-width
+            :header-date-format="formatHeaderDate"
+          ></v-date-picker>
         </v-row>
       </v-col>
       <v-col cols="9">
@@ -73,37 +78,71 @@
                 </template>
 
                 <template v-else>
-                  <!-- Iterar sobre las fechas agrupadas por día -->
-                  <template v-for="(events, date) in groupedEventsByDay">
-                    <!-- Mover el :key al primer elemento real -->
-                    <v-subheader :key="date - 1">{{
-                      new Date(date).toLocaleDateString()
-                    }}</v-subheader>
-                    <v-list-item-group>
-                      <!-- Iterar sobre los eventos en cada día -->
-                      <template v-if="events.length > 0">
-                        <v-list-item
-                          v-for="(event, idx) in events"
-                          :key="`event-${date}-${idx}`"
+                  <transition-group name="list" tag="div">
+                    <template v-for="(events, date) in groupedEventsByDay">
+                      <v-list-item-group class="pa-2" :key="date">
+                        <v-subheader
+                          color="primary"
+                          style="
+                            background-color: #c1c1c1;
+                            border: 1px solid #8e8e8e;
+                          "
+                          class="text-uppercase text-h6 font-weight-bold"
                         >
-                          <v-list-item-content>
-                            <v-list-item-title :style="{ color: event.color }">
-                              {{ event.name }}
-                            </v-list-item-title>
-                          </v-list-item-content>
-                        </v-list-item>
-                      </template>
-                      <template v-else>
-                        <v-list-item>
-                          <v-list-item-content>
-                            <v-alert type="info" dense class="mb-0">
-                              No hay actividades este día.
-                            </v-alert>
-                          </v-list-item-content>
-                        </v-list-item>
-                      </template>
-                    </v-list-item-group>
-                  </template>
+                          {{
+                            new Intl.DateTimeFormat("es-ES", {
+                              weekday: "long",
+                              day: "numeric",
+                            }).format(new Date(date))
+                          }}
+                        </v-subheader>
+
+                        <template v-if="events.length > 0">
+                          <v-list-item
+                            v-for="(event, idx) in events"
+                            :key="`event-${date}-${idx}`"
+                            style="
+                              cursor: pointer;
+                              border-bottom: 1px solid #8e8e8e;
+                            "
+                            @click="showEvent({ event: event })"
+                          >
+                            <v-list-item-content>
+                              <v-list-item-title style="font-size: 0.8rem">
+                                <span
+                                  :style="{
+                                    display: 'inline-block',
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    backgroundColor: event.color,
+                                    marginRight: '8px',
+                                  }"
+                                ></span>
+                                {{
+                                  new Date(event.start).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                }}
+                                - {{ event.name }}
+                              </v-list-item-title>
+                            </v-list-item-content>
+                          </v-list-item>
+                        </template>
+
+                        <template v-else>
+                          <v-list-item>
+                            <v-list-item-content>
+                              <v-alert type="info" dense class="mb-0">
+                                No hay actividades este día.
+                              </v-alert>
+                            </v-list-item-content>
+                          </v-list-item>
+                        </template>
+                      </v-list-item-group>
+                    </template>
+                  </transition-group>
                 </template>
               </v-list>
             </v-card>
@@ -139,7 +178,7 @@
           <v-btn icon dark @click="dialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          <v-btn v-if="isEdit" icon dark>
+          <v-btn v-if="isEdit" @click="eliminarTurno" icon dark>
             <v-icon>mdi-delete</v-icon>
           </v-btn>
           <v-toolbar-title>{{
@@ -152,13 +191,12 @@
             label="Paciente"
             v-model="nuevoTurno.id_paciente"
             :items="pacientes"
-            item-text="nombre"
+            :item-text="(paciente) => `${paciente.nombre} ${paciente.apellido}`"
             item-value="id_paciente"
             outlined
             dense
             required
           />
-
           <!-- Selector de Consultorio -->
           <v-select
             label="Consultorio"
@@ -186,7 +224,6 @@
               </div>
             </template>
           </v-select>
-
           <!-- Selector de Tratamientos -->
           <v-select
             label="Tratamiento"
@@ -345,12 +382,12 @@ export default {
     menuFechaFiltro: false,
     filtroFecha: "",
     menuHora: false,
-    validarDatosTurno: false,
+    // validarDatosTurno: false,
   }),
 
   methods: {
     formatHeaderDate(date) {
-      console.log("Valor de date recibido:", date); // Depuración
+      // console.log("Valor de date recibido:", date); // Depuración
 
       // Verificar si el valor es una cadena como "2025-02"
       if (typeof date === "string" && date.match(/^\d{4}-\d{2}$/)) {
@@ -376,11 +413,10 @@ export default {
       try {
         const response = await axios.get("/turnos/calendario");
         this.turnos = response.data;
-        console.log("Turnos cargados:", this.turnos);
+        // console.log("Turnos cargados:", this.turnos);
         // Esperar a que Vue reactive los datos antes de llamar a getEvents()
         this.$nextTick(() => {
           this.getEvents();
-          this.$forceUpdate(); // Forzar actualización en Vue
         });
       } catch (error) {
         console.error("Error al cargar turnos:", error);
@@ -388,7 +424,9 @@ export default {
     },
     getEvents() {
       this.events = [];
-      this.events = this.turnos.map((turno) => {
+
+      // Mapear los turnos a eventos
+      const eventos = this.turnos.map((turno) => {
         const fechaHoraInicio = new Date(`${turno.fecha}T${turno.hora}`);
         const duracion = turno.duracion_tratamiento;
         const fechaHoraFin = new Date(
@@ -396,13 +434,23 @@ export default {
         );
 
         return {
-          name: `${turno.nombre_paciente}<br>${turno.apellido_paciente}`,
+          id_turno: turno.id_turno,
+          id_paciente: turno.id_paciente,
+          id_consultorio: turno.id_consultorio,
+          id_tratamiento: turno.id_tratamiento,
+          name: `${turno.nombre_paciente} ${turno.apellido_paciente}`,
           start: fechaHoraInicio,
           end: fechaHoraFin,
           color: turno.color_tratamiento,
           timed: true,
         };
       });
+
+      // Ordenar los eventos por fecha de inicio (start)
+      eventos.sort((a, b) => a.start - b.start);
+
+      // Asignar los eventos ordenados a this.events
+      this.events = eventos;
     },
     onCalendarChange({ start }) {
       const date = new Date(start.date);
@@ -431,11 +479,47 @@ export default {
     showEvent({ event }) {
       this.dialog = true;
       this.isEdit = true;
+
+      // Crear una copia del evento para evitar mutaciones directas
+      const updatedEvent = { ...event };
+
+      // Asignar los datos del evento al objeto nuevoTurno
+      this.nuevoTurno = {
+        id_turno: updatedEvent.id_turno,
+        id_paciente: updatedEvent.id_paciente,
+        fecha: updatedEvent.start ? this.formatDate(updatedEvent.start) : null,
+        hora: updatedEvent.start ? this.formatTime(updatedEvent.start) : null,
+        estado: updatedEvent.estado || "pendiente",
+        id_consultorio: updatedEvent.id_consultorio,
+        id_tratamiento: updatedEvent.id_tratamiento,
+      };
+
+      // Cargar los tratamientos disponibles para el consultorio seleccionado
+      if (updatedEvent.id_consultorio) {
+        this.cargarTratamientosPorConsultorio(updatedEvent.id_consultorio);
+      }
+
+      // Si hay un tratamiento seleccionado, cargar sus detalles
+      if (updatedEvent.id_tratamiento) {
+        this.actualizarDetallesTratamiento(updatedEvent.id_tratamiento);
+      }
+    },
+
+    formatDate(date) {
+      const d = new Date(date);
+      return d.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+    },
+    formatTime(date) {
+      const d = new Date(date);
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`; // Formato HH:MM
     },
     async cargarPacientes() {
       try {
         const response = await axios.get("/pacientes");
         this.pacientes = response.data;
+        // console.log("Pacientes cargados:", this.pacientes);
       } catch (error) {
         console.error("Error al cargar pacientes:", error);
       }
@@ -479,31 +563,39 @@ export default {
         );
         this.tratamientosDisponibles = response.data || [];
 
-        // Reiniciar el tratamiento seleccionado y sus detalles
-        this.nuevoTurno.id_tratamiento = null;
-        this.tratamientoSeleccionado = { duracion: null, costo: null };
+        // Si estamos editando un turno, cargar los detalles del tratamiento seleccionado
+        if (this.isEdit && this.nuevoTurno.id_tratamiento) {
+          this.actualizarDetallesTratamiento(this.nuevoTurno.id_tratamiento);
+        } else {
+          // Reiniciar el tratamiento seleccionado y sus detalles si no estamos editando
+          this.nuevoTurno.id_tratamiento = null;
+          this.tratamientoSeleccionado = { duracion: null, costo: null };
+        }
       } catch (error) {
         console.error("Error al cargar tratamientos:", error.message);
         this.tratamientosDisponibles = [];
       }
     },
-    actualizarDetallesTratamiento() {
+    actualizarDetallesTratamiento(id_tratamiento) {
+      // Buscar el tratamiento en la lista de tratamientos disponibles
+
       const tratamiento = this.tratamientosDisponibles.find(
-        (t) => t.id_tratamiento === this.nuevoTurno.id_tratamiento
+        (t) => t.id_tratamiento === id_tratamiento
       );
-      console.log(tratamiento);
+
       if (tratamiento) {
+        // Asignar los detalles del tratamiento
         this.tratamientoSeleccionado = {
           duracion: tratamiento.duracion,
           costo: tratamiento.costo,
         };
       } else {
+        // Si no se encuentra el tratamiento, limpiar los detalles
         this.tratamientoSeleccionado = { duracion: null, costo: null };
       }
-      this.$forceUpdate();
     },
     guardarTurno() {
-      if (isEdit) {
+      if (this.isEdit) {
         this.updateTurno(this.nuevoTurno);
       } else {
         this.createTurno(this.nuevoTurno);
@@ -512,25 +604,43 @@ export default {
     async createTurno(turno) {
       try {
         const response = await axios.post("/turnos", turno);
-        this.$toast.success(response.data.message || "Turno creado con éxito.");
+        // this.$toast.success(response.data.message || "Turno creado con éxito.");
+        this.cargarTurnos();
+        this.dialog = false;
       } catch (error) {
-        console.error("Error al crear el turno:", error);
+        // console.error("Error al crear el turno:", error);
         const errorMessage =
           error.response?.data?.message || "Error al crear el turno.";
         this.$toast.error(errorMessage);
       }
     },
     async updateTurno(turno) {
+      //console.log(turno);
       try {
         const response = await axios.put(`/turnos/${turno.id_turno}`, turno);
-        this.$toast.success(
-          response.data.message || "Turno actualizado con éxito."
-        );
+
+        this.cargarTurnos();
+        this.dialog = false;
       } catch (error) {
         console.error("Error al actualizar el turno:", error);
         const errorMessage =
           error.response?.data?.message || "Error al actualizar el turno.";
         this.$toast.error(errorMessage);
+      }
+    },
+
+    eliminarTurno() {
+      if (this.nuevoTurno.id_turno) {
+        axios
+          .delete(`/turnos/${this.nuevoTurno.id_turno}`)
+          .then(() => {
+            this.cargarTurnos();
+            this.dialog = false;
+          })
+          .catch((error) => {
+            console.error("Error al eliminar el turno:", error);
+            this.$toast.error("Error al eliminar el turno.");
+          });
       }
     },
   },
@@ -566,10 +676,10 @@ export default {
     groupedEventsByDay() {
       if (this.currentMonth === null || this.currentYear === null) return {};
 
-      return this.events.reduce((acc, event) => {
+      const grouped = this.events.reduce((acc, event) => {
         const eventDate = new Date(event.start);
-        const eventMonth = eventDate.getUTCMonth(); // Usar getUTCMonth() para evitar problemas de zona horaria
-        const eventYear = eventDate.getUTCFullYear(); // Usar getUTCFullYear() para evitar problemas de zona horaria
+        const eventMonth = eventDate.getUTCMonth();
+        const eventYear = eventDate.getUTCFullYear();
 
         if (
           eventMonth === this.currentMonth &&
@@ -591,15 +701,25 @@ export default {
 
         return acc;
       }, {});
+
+      // Ordenar las fechas
+      const sortedGrouped = {};
+      Object.keys(grouped)
+        .sort((a, b) => new Date(a) - new Date(b))
+        .forEach((key) => {
+          sortedGrouped[key] = grouped[key];
+        });
+
+      return sortedGrouped;
     },
-    tratamientoSeleccionado() {
-      const consultorio = this.consultorios.find(
-        (c) => c.id_consultorio === this.nuevoTurno.id_consultorio
-      );
-      return consultorio && consultorio.tratamiento.length > 0
-        ? consultorio.tratamiento[0]
-        : { duracion: "", costo: "" };
-    },
+    // tratamientoSeleccionado() {
+    //   const consultorio = this.consultorios.find(
+    //     (c) => c.id_consultorio === this.nuevoTurno.id_consultorio
+    //   );
+    //   return consultorio && consultorio.tratamiento.length > 0
+    //     ? consultorio.tratamiento[0]
+    //     : { duracion: "", costo: "" };
+    // },
     horaFormateada() {
       if (!this.nuevoTurno.hora) return "";
       return this.nuevoTurno.hora;

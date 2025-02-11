@@ -42,7 +42,11 @@
           :key="consultorio.id_consultorio"
           v-slot:default="{ hover }"
         >
-          <v-card class="mb-2 position-relative" outlined>
+          <v-card
+            class="mb-2 position-relative"
+            style="background-color: #b8b8b8"
+            outlined
+          >
             <!-- Nombre del consultorio -->
             <v-card-title class="text-h6">
               {{ consultorio.nombre }}
@@ -73,8 +77,8 @@
 
             <!-- Botones de edición/borrado -->
             <div
-              class="position-absolute top-0 end-0 pa-2 transition-swing"
-              style="z-index: 10"
+              class="pa-2 transition-swing"
+              style="z-index: 10; position: absolute; right: 0; top: 0"
               :style="{ opacity: hover ? 1 : 0 }"
             >
               <v-btn
@@ -106,15 +110,31 @@
           :key="tratamiento.id_tratamiento"
           v-slot:default="{ hover }"
         >
-          <v-card :color="tratamiento.color" class="position-relative" outlined>
-            <v-card-title class="text-h6">{{
+          <v-card
+            :color="tratamiento.color"
+            class="ma-2 pa-2 d-flex flex-column justify-center align-center"
+            style="position: relative"
+          >
+            <v-card-title class="text-h6 font-weight-bold ma-0 pa-0">{{
               tratamiento.nombre.toUpperCase()
             }}</v-card-title>
 
+            <v-card-subtitle class="text-subtitle-1 ma-0 pa-0">{{
+              tratamiento.descripcion
+            }}</v-card-subtitle>
+
+            <v-card-subtitle class="text-subtitle-1 ma-0 pa-0">
+              {{ tratamiento.duracion }} min
+            </v-card-subtitle>
+
+            <v-card-title class="text-subtitle-1 ma-0 pa-0"
+              >$ {{ tratamiento.costo }}</v-card-title
+            >
+
             <!-- Botones que aparecen al pasar el mouse -->
             <div
-              class="position-absolute top-0 right-0 pa-2 transition-ease-in-out"
-              style="z-index: 10"
+              class="pa-2 transition-ease-in-out"
+              style="z-index: 10; position: absolute; right: 0; top: 0"
               :style="{ opacity: hover ? 1 : 0 }"
             >
               <v-btn
@@ -129,7 +149,6 @@
                 color="#222222"
                 icon
                 small
-                class="ml-2"
                 @click="borrarTratamiento(tratamiento)"
               >
                 <v-icon>mdi-delete</v-icon>
@@ -301,12 +320,12 @@
             small
             outlined
             :value="btnColor"
-            :color="selectedColor === btnColor ? btnColor : '#989898'"
+            :color="isColorSelected(btnColor) ? btnColor : '#989898'"
             @click="selectColor(btnColor)"
             class="d-flex justify-center align-center"
             style="padding: 10px 5px; position: relative; overflow: hidden"
             :style="{
-              borderColor: selectedColor === btnColor ? btnColor : '#989898',
+              borderColor: isColorSelected(btnColor) ? btnColor : '#989898',
             }"
           >
             <div
@@ -321,24 +340,35 @@
           </v-btn>
 
           <!-- Botón que abre el Color Picker -->
-          <v-btn
-            small
-            outlined
-            color="#989898"
-            class="d-flex justify-center align-center"
-            style="padding: 10px 5px; position: relative; overflow: hidden"
-            @click="openColorPicker"
-          >
-            <v-icon color="#989898">mdi-palette</v-icon>
-          </v-btn>
+          <v-menu v-model="menu" :close-on-content-click="false" offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                small
+                outlined
+                :color="iconColor"
+                class="d-flex justify-center align-center"
+                style="padding: 10px 5px; position: relative; overflow: hidden"
+                v-bind="attrs"
+                v-on="on"
+              >
+                <v-icon :color="iconColor">mdi-palette</v-icon>
+              </v-btn>
+            </template>
 
-          <!-- Input de tipo color (oculto) -->
-          <input
-            ref="colorPicker"
-            type="color"
-            style="display: none"
-            @input="selectColor($event.target.value)"
-          />
+            <!-- Contenido del menú -->
+            <v-card>
+              <v-card-text>
+                <!-- Selector de color personalizado -->
+                <v-color-picker
+                  v-model="selectedColor"
+                  mode="hexa"
+                  show-swatches
+                  swatches-max-height="200"
+                  @input="selectColor"
+                ></v-color-picker>
+              </v-card-text>
+            </v-card>
+          </v-menu>
         </div>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -399,6 +429,7 @@ import axios from "axios";
 export default {
   data() {
     return {
+      menu: false,
       selectedColor: null,
       buttonColors: ["#8c57ff", "#0d9394", "#ffb400", "#ff4c51", "#16b1ff"],
       consultorios: [],
@@ -421,6 +452,17 @@ export default {
     };
   },
   methods: {
+    selectColor(color) {
+      this.selectedColor = color; // Actualiza el color seleccionado
+      this.menu = false; // Cierra el menú después de seleccionar un color
+    },
+    // Verifica si el color está seleccionado
+    isColorSelected(btnColor) {
+      return (
+        this.selectedColor === btnColor ||
+        !this.buttonColors.includes(this.selectedColor)
+      );
+    },
     removeTratamiento(item) {
       // Filtra el tratamiento eliminado del array
       this.selectedTratamientos = this.selectedTratamientos.filter(
@@ -688,6 +730,20 @@ export default {
   mounted() {
     this.fetchConsultoriosyTratamientos();
     this.fetchTratamientos();
+  },
+  computed: {
+    // Determina el color del ícono
+    iconColor() {
+      // Si el color seleccionado no está en la lista de colores predefinidos, usa el color seleccionado
+      if (
+        this.selectedColor &&
+        !this.buttonColors.includes(this.selectedColor)
+      ) {
+        return this.selectedColor;
+      }
+      // Si el color seleccionado es un color predefinido o no hay color seleccionado, usa el color por defecto
+      return "#989898";
+    },
   },
 };
 </script>
