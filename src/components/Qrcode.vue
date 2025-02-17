@@ -75,8 +75,18 @@ export default {
         this.error = null;
         this.qrUrl = null; // Reinicia el QR mientras se genera
 
+        // Obtén el ID del usuario desde sessionStorage
+        const session = JSON.parse(sessionStorage.getItem("session"));
+        const userId = session?.id;
+
+        if (!userId) {
+          throw new Error("No se encontró el ID del usuario en la sesión.");
+        }
+
         // Genera el código QR
-        const response = await axios.get("/generate-qr");
+        const response = await axios.get("/generate-qr", {
+          params: { userId },
+        });
         console.log("Respuesta del servidor:", response.data);
         const data = response.data;
 

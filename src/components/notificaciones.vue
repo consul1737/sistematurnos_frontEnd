@@ -119,7 +119,7 @@ export default {
     // Cargar turnos desde el backend
     async cargarTurnos() {
       try {
-        const response = await axios.get("/Calendarturnos", {
+        const response = await axios.get("/turnos/calendario", {
           params: { fecha: this.filtroFecha }, // Filtrar por fecha si se especifica
         });
         this.turnos = response.data;
@@ -145,7 +145,6 @@ export default {
             idTurno: turno.id_turno,
             numero: turno.telefono, // Asegúrate de que el número está disponible
           }));
-        console.log();
 
         // Enviar notificaciones al backend con los turnos seleccionados
         const response = await axios.post("/enviar-notificaciones", {

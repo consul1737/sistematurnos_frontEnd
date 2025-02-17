@@ -145,7 +145,9 @@
           </thead>
           <tbody>
             <tr v-for="turno in turnos" :key="turno.id_turno">
-              <td>{{ turno.nombre_paciente }}</td>
+              <td>
+                {{ turno.nombre_paciente + " " + turno.apellido_paciente }}
+              </td>
               <td>{{ turno.consultorio }}</td>
               <td>{{ turno.fecha }}</td>
               <td>{{ turno.hora }}</td>
@@ -158,14 +160,14 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
   data() {
     return {
       menuFecha: false,
       menuFechaFiltro: false,
-      filtroFecha: '', // Almacenar la fecha para filtrar
+      filtroFecha: "", // Almacenar la fecha para filtrar
       consultorios: [], // Lista de consultorios cargada desde el backend
       tratamientos: [], // Lista de tratamientos cargada desde el backend
       pacientes: [], // Lista de pacientes cargada desde el backend
@@ -174,63 +176,64 @@ export default {
         id_paciente: null,
         id_consultorio: null,
         id_tratamiento: null,
-        fecha: '',
-        hora: ''
-      }
+        fecha: "",
+        hora: "",
+      },
     };
   },
   methods: {
     async cargarConsultorios() {
       try {
-        const response = await axios.get('/consultorios');
+        const response = await axios.get("/consultorios");
         this.consultorios = response.data;
       } catch (error) {
-        console.error('Error al cargar consultorios:', error);
+        console.error("Error al cargar consultorios:", error);
       }
     },
     async cargarTratamientos() {
       try {
-        const response = await axios.get('/tratamientos');
+        const response = await axios.get("/tratamientos");
         this.tratamientos = response.data;
       } catch (error) {
-        console.error('Error al cargar tratamientos:', error);
+        console.error("Error al cargar tratamientos:", error);
       }
     },
     async cargarPacientes() {
       try {
-        const response = await axios.get('/pacientes');
+        const response = await axios.get("/pacientes");
         this.pacientes = response.data;
       } catch (error) {
-        console.error('Error al cargar pacientes:', error);
+        console.error("Error al cargar pacientes:", error);
       }
     },
     async cargarTurnos() {
       try {
-        const response = await axios.get('/Calendarturnos', {
-          params: { fecha: this.filtroFecha } // Pasar la fecha seleccionada para filtrar
+        const response = await axios.get("/turnos/calendario", {
+          params: { fecha: this.filtroFecha }, // Pasar la fecha seleccionada para filtrar
         });
         this.turnos = response.data;
       } catch (error) {
-        console.error('Error al cargar turnos:', error);
+        console.error("Error al cargar turnos:", error);
       }
     },
     async crearTurno() {
       try {
-        const response = await axios.post('/turnos', this.nuevoTurno);
+        const response = await axios.post("/turnos", this.nuevoTurno);
         this.$refs.form.reset(); // Limpiar el formulario
-        this.$toast.success(response.data.message || 'Turno creado con éxito.');
+        this.$toast.success(response.data.message || "Turno creado con éxito.");
       } catch (error) {
-        console.error('Error al crear el turno:', error);
-        const errorMessage = error.response?.data?.message || 'Error al crear el turno.';
+        console.error("Error al crear el turno:", error);
+        const errorMessage =
+          error.response?.data?.message || "Error al crear el turno.";
         this.$toast.error(errorMessage);
       }
-    }
+    },
   },
   mounted() {
     this.cargarConsultorios();
     this.cargarTratamientos();
     this.cargarPacientes(); // Cargar pacientes al montar el componente
     this.cargarTurnos(); // Cargar los turnos al montar el componente
-  }
+  },
 };
 </script>
