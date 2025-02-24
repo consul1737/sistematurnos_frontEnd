@@ -23,7 +23,7 @@ const routes = [
   },
   {
     path: '/calendario',
-    name: 'calendario',
+    name: 'Calendario',
     component: () => import('../components/MyCalendar.vue'),
     meta: { requiresAuth: true }
   },

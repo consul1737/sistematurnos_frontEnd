@@ -135,7 +135,7 @@ export default {
   methods: {
     async fetchPacientes() {
       try {
-        const response = await axios.get("/Adminpacientes");
+        const response = await axios.get("/pacientes");
         this.pacientes = response.data;
       } catch (error) {
         console.error("Error al obtener pacientes:", error);
