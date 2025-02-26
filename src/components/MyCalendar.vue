@@ -6,7 +6,7 @@
           >📅 Calendario de turnos</v-card-title
         >
       </v-col>
-      <v-col cols="3" class="d-flex flex-column align-center pa-6">
+      <v-col cols="4" class="d-flex flex-column align-center pa-6">
         <v-btn
           color="primary"
           class="ma-3"
@@ -14,17 +14,21 @@
           @click="handleCreateTurno"
           >+ Nuevo Turno</v-btn
         >
-        <v-divider></v-divider>
-        <v-row justify="center">
-          <v-date-picker
-            v-model="picker"
-            no-title
-            full-width
-            :header-date-format="formatHeaderDate"
-          ></v-date-picker>
-        </v-row>
       </v-col>
-      <v-col cols="9">
+
+      <v-col cols="8" class="d-flex flex-column align-center pa-6">
+        <v-select
+          v-model="weekday"
+          :items="weekdays"
+          dense
+          outlined
+          hide-details
+          label="Días de la semana a mostrar"
+          class="ma-2"
+        ></v-select>
+      </v-col>
+      <!--calendario-->
+      <v-col cols="12">
         <section
           style="
             display: flex;
@@ -49,10 +53,10 @@
             <v-btn value="month">
               <span class="hidden-sm-and-down">Mes</span>
             </v-btn>
-            <v-btn value="week">
+            <v-btn @click="setToCurrentDate" value="week">
               <span class="hidden-sm-and-down">Semana</span>
             </v-btn>
-            <v-btn value="day">
+            <v-btn @click="setToCurrentDate" value="day">
               <span class="hidden-sm-and-down">Diario</span>
             </v-btn>
             <v-btn value="list">
@@ -93,7 +97,8 @@
                             new Intl.DateTimeFormat("es-ES", {
                               weekday: "long",
                               day: "numeric",
-                            }).format(new Date(date))
+                              timeZone: "UTC",
+                            }).format(new Date(date + "T00:00:00Z"))
                           }}
                         </v-subheader>
 
@@ -119,13 +124,33 @@
                                     marginRight: '8px',
                                   }"
                                 ></span>
-                                {{
-                                  new Date(event.start).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
-                                }}
-                                - {{ event.name }}
+                                <span
+                                  class="font-weight-bold"
+                                  style="font-size: 1.1rem"
+                                >
+                                  {{
+                                    new Date(event.start).toLocaleTimeString(
+                                      [],
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }
+                                    )
+                                  }}
+                                </span>
+                                <span class="font-weight-bold">
+                                  {{ event.category }} </span
+                                >-
+                                <span
+                                  class="font-weight-bold"
+                                  :style="{
+                                    color: event.color,
+                                  }"
+                                >
+                                  {{ event.nombre_tratamiento }}
+                                </span>
+                                -
+                                {{ event.name }}
                               </v-list-item-title>
                             </v-list-item-content>
                           </v-list-item>
@@ -153,10 +178,11 @@
             ref="calendar"
             v-model="value"
             :weekdays="weekday"
-            :type="type === 'list' ? 'month' : type"
+            :type="calendarType"
             :events="events"
             :event-overlap-threshold="30"
             :event-color="getEventColor"
+            :categories="categories"
             @change="onCalendarChange"
             @click:event="showEvent"
             locale="es"
@@ -346,14 +372,20 @@ import axios from "axios";
 export default {
   data: () => ({
     turnos: [],
-    type: "day",
+    type: localStorage.getItem("defaultView") || "day",
+    today: new Date().toISOString().slice(0, 10),
     types: [
       { text: "Mes", value: "month" },
       { text: "Semana", value: "week" },
       { text: "Día", value: "day" },
       { text: "Lista", value: "list" },
     ],
-    weekday: [0, 1, 2, 3, 4, 5, 6],
+    weekday: localStorage.getItem("weekday") || [1, 2, 3, 4, 5, 6, 0],
+    weekdays: [
+      { text: "Lun - Sab", value: [1, 2, 3, 4, 5, 6] },
+      { text: "Lun - Dom", value: [1, 2, 3, 4, 5, 6, 0] },
+      { text: "Lun - Vie", value: [1, 2, 3, 4, 5] },
+    ],
     value: "",
     currentMonth: null, // Nuevo dato para almacenar el mes actual
     currentYear: null, // Nuevo dato para almacenar el año actual
@@ -382,10 +414,34 @@ export default {
     menuFechaFiltro: false,
     filtroFecha: "",
     menuHora: false,
+    categories: [],
     // validarDatosTurno: false,
   }),
 
   methods: {
+    setToCurrentDate() {
+      this.value = new Date().toISOString().split("T")[0]; // Establecer la fecha actual en el formato YYYY-MM-DD
+      this.updateCategories(); // Actualiza las categorías si es necesario
+      this.getEvents(); // Vuelve a cargar los eventos para la nueva fecha
+    },
+    updateCategories() {
+      const selectedDate = this.value; // Fecha seleccionada en el calendario
+
+      console.log("consultorios:", this.consultorios);
+      // Filtrar los consultorios que tienen eventos en la fecha seleccionada
+      const consultoriosConTurnos = this.consultorios.filter((consultorio) => {
+        return this.events.some((event) => {
+          const eventDate = new Date(event.start).toISOString().split("T")[0]; // Formato YYYY-MM-DD
+          return (
+            eventDate === selectedDate && event.category === consultorio.nombre
+          );
+        });
+      });
+
+      // Actualizar la propiedad categories
+      this.categories = consultoriosConTurnos.map((c) => c.nombre);
+      console.log("Categorías actualizadas:", this.categories);
+    },
     formatHeaderDate(date) {
       // console.log("Valor de date recibido:", date); // Depuración
 
@@ -413,19 +469,15 @@ export default {
       try {
         const response = await axios.get("/turnos/calendario");
         this.turnos = response.data;
-        // console.log("Turnos cargados:", this.turnos);
-        // Esperar a que Vue reactive los datos antes de llamar a getEvents()
-        this.$nextTick(() => {
-          this.getEvents();
-        });
       } catch (error) {
         console.error("Error al cargar turnos:", error);
       }
     },
     getEvents() {
       this.events = [];
+      // console.log("Consultorios:", this.consultorios);
+      console.log("Turnos:", this.turnos);
 
-      // Mapear los turnos a eventos
       const eventos = this.turnos.map((turno) => {
         const fechaHoraInicio = new Date(`${turno.fecha}T${turno.hora}`);
         const duracion = turno.duracion_tratamiento;
@@ -433,39 +485,46 @@ export default {
           fechaHoraInicio.getTime() + duracion * 60000
         );
 
+        const nombreConsultorio = turno.nombre_consultorio || "Sin consultorio";
         return {
           id_turno: turno.id_turno,
           id_paciente: turno.id_paciente,
           id_consultorio: turno.id_consultorio,
           id_tratamiento: turno.id_tratamiento,
+          nombre_tratamiento: turno.nombre_tratamiento,
           name: `${turno.nombre_paciente} ${turno.apellido_paciente}`,
           start: fechaHoraInicio,
           end: fechaHoraFin,
           color: turno.color_tratamiento,
           timed: true,
+          category: nombreConsultorio,
         };
       });
 
-      // Ordenar los eventos por fecha de inicio (start)
+      console.log("Eventos generados:", eventos);
       eventos.sort((a, b) => a.start - b.start);
-
-      // Asignar los eventos ordenados a this.events
       this.events = eventos;
     },
     onCalendarChange({ start }) {
       const date = new Date(start.date);
-      this.currentMonth = date.getUTCMonth(); // Usar getUTCMonth() para evitar problemas de zona horaria
-      this.currentYear = date.getUTCFullYear(); // Usar getUTCFullYear() para evitar problemas de zona horaria
-      this.$forceUpdate(); // Forzar la actualización de la vista
+      this.currentMonth = date.getUTCMonth();
+      this.currentYear = date.getUTCFullYear();
+      this.value = start.date; // Actualizar `value` con la nueva fecha
+      this.updateCategories(); // Actualizar categorías si es necesario
+      this.getEvents(); // Actualizar eventos si es necesario
     },
     prev() {
       if (this.$refs.calendar) {
         this.$refs.calendar.prev();
+        this.$refs.calendar.update(); // Forzar la actualización del calendario
+        this.updateValue();
       }
     },
     next() {
       if (this.$refs.calendar) {
         this.$refs.calendar.next();
+        this.$refs.calendar.update(); // Forzar la actualización del calendario
+        this.updateValue();
       }
     },
     getEventColor(event) {
@@ -475,7 +534,6 @@ export default {
       this.isEdit = false;
       this.dialog = true;
     },
-
     showEvent({ event }) {
       this.dialog = true;
       this.isEdit = true;
@@ -504,7 +562,6 @@ export default {
         this.actualizarDetallesTratamiento(updatedEvent.id_tratamiento);
       }
     },
-
     formatDate(date) {
       const d = new Date(date);
       return d.toISOString().split("T")[0]; // Formato YYYY-MM-DD
@@ -524,7 +581,6 @@ export default {
         console.error("Error al cargar pacientes:", error);
       }
     },
-
     async fetchConsultoriosyTratamientos() {
       try {
         const response = await axios.get("/consultorios/tratamientos");
@@ -643,12 +699,38 @@ export default {
           });
       }
     },
+    onDateChange(newDate) {
+      this.picker = newDate; // Actualizar la fecha seleccionada
+      this.$forceUpdate(); // Forzar la actualización de la vista
+    },
   },
-
-  mounted() {
-    this.cargarTurnos();
-    this.cargarPacientes();
+  created() {
     this.fetchConsultoriosyTratamientos();
+  },
+  async mounted() {
+    const savedView = localStorage.getItem("defaultView");
+    const savedWeekday = localStorage.getItem("weekday");
+
+    if (savedWeekday) {
+      console.log("savedWeekday:", savedWeekday);
+      this.weekday = JSON.parse(savedWeekday);
+    }
+
+    if (savedView) {
+      console.log("savedView:", savedView);
+      this.type = savedView; // Restaurar la vista guardada al cargar el componente
+    }
+    if (this.type === "day") {
+      this.type = "category";
+    }
+
+    await this.fetchConsultoriosyTratamientos(); // Asegúrate de que esta función retorne una promesa
+    await this.cargarTurnos();
+    await this.cargarPacientes();
+    await this.getEvents();
+
+    this.updateCategories();
+    this.groupedEventsByDay();
     this.$nextTick(() => {
       if (this.$refs.calendar) {
         this.value = this.$refs.calendar.value;
@@ -660,6 +742,30 @@ export default {
     });
   },
   watch: {
+    value(newValue) {
+      this.updateCategories(); // Actualizar categorías cuando cambia la fecha
+    },
+
+    type(newType) {
+      localStorage.setItem("defaultView", newType); // Guardar cambios en localStorage
+      this.$nextTick(() => {
+        if (this.$refs.calendar) {
+          this.$refs.calendar.update();
+          this.$forceUpdate(); // Forzar la actualización de la vista
+        }
+      });
+    },
+
+    weekday(newWeekday) {
+      localStorage.setItem("weekday", JSON.stringify(newWeekday)); // Guardar cambios en localStorage
+      this.$nextTick(() => {
+        if (this.$refs.calendar) {
+          this.$refs.calendar.update();
+          this.$forceUpdate(); // Forzar la actualización de la vista
+        }
+      });
+    },
+
     dialog(val) {
       if (!val) {
         this.nuevoTurno = {
@@ -671,16 +777,47 @@ export default {
         };
       }
     },
+    turnos() {
+      this.$nextTick(() => {
+        this.getEvents();
+      });
+    },
   },
   computed: {
+    calendarType() {
+      if (this.type === "list") {
+        return "month";
+      }
+      console.log();
+      return this.type === "day" ? "category" : this.type;
+    },
+    // calendarCategories() {
+    //   // Obtener la fecha seleccionada en el calendario
+    //   const selectedDate = this.picker; // Asumiendo que `picker` es la fecha seleccionada
+
+    //   // Filtrar los consultorios que tienen eventos en la fecha seleccionada
+    //   const consultoriosConTurnos = this.consultorios.filter((consultorio) => {
+    //     return this.events.some((event) => {
+    //       const eventDate = new Date(event.start).toISOString().split("T")[0]; // Formato YYYY-MM-DD
+    //       return (
+    //         eventDate === selectedDate && event.category === consultorio.nombre
+    //       );
+    //     });
+    //   });
+
+    //   // Devolver solo los nombres de los consultorios que tienen turnos en la fecha seleccionada
+    //   console.log(
+    //     "Consultorios con turnos en la fecha seleccionada:",
+    //     consultoriosConTurnos
+    //   );
+    //   return consultoriosConTurnos.map((c) => c.nombre);
+    // },
     groupedEventsByDay() {
       if (this.currentMonth === null || this.currentYear === null) return {};
-
       const grouped = this.events.reduce((acc, event) => {
-        const eventDate = new Date(event.start);
+        const eventDate = new Date(event.start + "Z"); // Asegúrate de interpretar como UTC
         const eventMonth = eventDate.getUTCMonth();
         const eventYear = eventDate.getUTCFullYear();
-
         if (
           eventMonth === this.currentMonth &&
           eventYear === this.currentYear
@@ -691,17 +828,13 @@ export default {
             .getUTCDate()
             .toString()
             .padStart(2, "0")}`;
-
           if (!acc[dateKey]) {
             acc[dateKey] = [];
           }
-
           acc[dateKey].push(event);
         }
-
         return acc;
       }, {});
-
       // Ordenar las fechas
       const sortedGrouped = {};
       Object.keys(grouped)
@@ -709,7 +842,6 @@ export default {
         .forEach((key) => {
           sortedGrouped[key] = grouped[key];
         });
-
       return sortedGrouped;
     },
     // tratamientoSeleccionado() {
