@@ -190,14 +190,22 @@
             locale="es"
           >
             <template v-slot:event="{ event }">
-              <v-tooltip top :color="event.color">
+              <v-tooltip
+                top
+                content-class="custom-tooltip"
+                :style="{
+                  '--tooltip-border-color': event.color, // Define una variable CSS
+                  '--tooltip-bg-color': event.colorLigth,
+                }"
+                open-delay="150"
+              >
                 <template v-slot:activator="{ on, attrs }">
                   <div
                     v-if="calendarType === 'week'"
                     class="text-center"
                     :style="{
-                      backgroundColor: event.color,
-                      color: event.colorLigth,
+                      backgroundColor: event.colorLigth,
+                      color: event.color,
                     }"
                     v-bind="attrs"
                     v-on="on"
@@ -213,8 +221,7 @@
                     v-on="on"
                     class="text-center"
                     :style="{
-                      backgroundColor: event.color,
-                      color: event.colorLigth,
+                      color: event.colorDark,
                     }"
                   >
                     <!-- Información mínima para otras vistas -->
@@ -232,8 +239,17 @@
                   </div>
                 </template>
                 <!-- Contenido del tooltip -->
-                <v-card>
-                  <v-card-text>
+                <v-card
+                  :color="event.colorLigth"
+                  elevation="0"
+                  :style="{
+                    border: `2px solid ${event.color}`,
+                  }"
+                >
+                  <v-card-text
+                    class="text-lg-subtitle-1"
+                    :style="{ color: event.colorDark }"
+                  >
                     <div>
                       <strong>Consultorio:</strong> {{ event.category }}
                     </div>
@@ -461,9 +477,9 @@
               </v-list-item-content>
               <v-list-item-action>
                 <v-chip
-                  :color="event.color"
+                  :color="event.colorLigth"
                   :style="{
-                    color: event.colorLigth,
+                    color: event.colorDark,
                   }"
                   dark
                   small
@@ -629,10 +645,10 @@ export default {
         );
 
         const colorDark = this.isValidHexColor(turno.color_tratamiento)
-          ? this.darkenColor(turno.color_tratamiento, 0.4)
+          ? this.darkenColor(turno.color_tratamiento, 0.6)
           : null;
         const colorLigth = this.isValidHexColor(turno.color_tratamiento)
-          ? this.lightenColor(turno.color_tratamiento, 0.7)
+          ? this.lightenColor(turno.color_tratamiento, 0.4)
           : null;
 
         console.log("turno.color_tratamiento:", turno.color_tratamiento);
@@ -726,7 +742,7 @@ export default {
       }
     },
     getEventColor(event) {
-      return event.color;
+      return event.colorLigth;
     },
     handleCreateTurno() {
       this.isEdit = false;
@@ -1076,3 +1092,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.custom-tooltip {
+  background-color: var(--tooltip-bg-color) !important;
+  opacity: 1 !important;
+}
+</style>
