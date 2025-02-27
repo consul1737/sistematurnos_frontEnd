@@ -180,13 +180,84 @@
             :weekdays="weekday"
             :type="calendarType"
             :events="events"
-            :event-overlap-threshold="30"
+            :event-overlap-mode="'column'"
+            :event-overlap-threshold="60"
             :event-color="getEventColor"
             :categories="categories"
             @change="onCalendarChange"
             @click:event="showEvent"
+            @click:more="handleClickMore"
             locale="es"
           >
+            <template v-slot:event="{ event }">
+              <v-tooltip top :color="event.color">
+                <template v-slot:activator="{ on, attrs }">
+                  <div
+                    v-if="calendarType === 'week'"
+                    class="text-center"
+                    :style="{
+                      backgroundColor: event.color,
+                      color: event.colorLigth,
+                    }"
+                    v-bind="attrs"
+                    v-on="on"
+                  >
+                    <!-- Información mínima -->
+                    <strong>{{ event.category }}</strong>
+                    <br />
+                    <strong>{{ event.name }}</strong>
+                  </div>
+                  <div
+                    v-else
+                    v-bind="attrs"
+                    v-on="on"
+                    class="text-center"
+                    :style="{
+                      backgroundColor: event.color,
+                      color: event.colorLigth,
+                    }"
+                  >
+                    <!-- Información mínima para otras vistas -->
+                    <span class="font-weight-bold"
+                      >{{
+                        new Date(event.start).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      }}
+                      {{ event.name }} {{ event.apellido_paciente }}</span
+                    >
+                    <br />
+                    <strong>{{ event.nombre_tratamiento }}</strong>
+                  </div>
+                </template>
+                <!-- Contenido del tooltip -->
+                <v-card>
+                  <v-card-text>
+                    <div>
+                      <strong>Consultorio:</strong> {{ event.category }}
+                    </div>
+                    <div>
+                      <strong>Tratamiento:</strong>
+                      {{ event.nombre_tratamiento }}
+                    </div>
+                    <div>
+                      <strong>Hora:</strong>
+                      {{ formatTime(event.start) }} -
+                      {{ formatTime(event.end) }}
+                    </div>
+                    <div>
+                      <strong>Duración: </strong>
+                      {{ event.duracion_tratamiento }} min
+                    </div>
+                    <div><strong>Nombre:</strong> {{ event.name }}</div>
+                    <div>
+                      <strong>Apellido:</strong> {{ event.apellido_paciente }}
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-tooltip>
+            </template>
           </v-calendar>
         </v-sheet>
       </v-col>
@@ -364,6 +435,50 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <!-- Diálogo para mostrar todos los turnos del día -->
+    <v-dialog v-model="dialogDia" max-width="600">
+      <v-card>
+        <v-card-title> Turnos del día: {{ selectedDate }} </v-card-title>
+        <v-card-text>
+          <!-- Lista de eventos del día -->
+          <v-list>
+            <v-list-item v-for="(event, index) in eventsOfDay" :key="index">
+              <v-list-item-content>
+                <v-list-item-title>
+                  {{ event.nombre_paciente }} {{ event.apellido_paciente }}
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  <strong>Tratamiento:</strong> {{ event.nombre_tratamiento }}
+                </v-list-item-subtitle>
+                <v-list-item-subtitle>
+                  <strong>Hora:</strong> {{ formatTime(event.start) }} -
+                  {{ formatTime(event.end) }}
+                </v-list-item-subtitle>
+                <v-list-item-subtitle>
+                  <strong>Consultorio:</strong>
+                  {{ event.nombre_consultorio || "Sin consultorio" }}
+                </v-list-item-subtitle>
+              </v-list-item-content>
+              <v-list-item-action>
+                <v-chip
+                  :color="event.color"
+                  :style="{
+                    color: event.colorLigth,
+                  }"
+                  dark
+                  small
+                >
+                  {{ event.nombre_tratamiento }}
+                </v-chip>
+              </v-list-item-action>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="primary" @click="dialogDia = false">Cerrar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -386,7 +501,9 @@ export default {
       { text: "Lun - Dom", value: [1, 2, 3, 4, 5, 6, 0] },
       { text: "Lun - Vie", value: [1, 2, 3, 4, 5] },
     ],
-    value: "",
+    value:
+      localStorage.getItem("selectedDate") ||
+      new Date().toISOString().split("T")[0],
     currentMonth: null, // Nuevo dato para almacenar el mes actual
     currentYear: null, // Nuevo dato para almacenar el año actual
     picker: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -394,6 +511,7 @@ export default {
       .substr(0, 10),
     events: [],
     dialog: false,
+    dialogDia: false,
     isEdit: false,
     pacientes: [],
     consultorios: [],
@@ -415,10 +533,35 @@ export default {
     filtroFecha: "",
     menuHora: false,
     categories: [],
+    selectedDate: null,
+    eventsOfDay: [],
     // validarDatosTurno: false,
   }),
 
   methods: {
+    handleClickMore({ date }) {
+      // Convertir la fecha a un objeto Date
+      const selectedDate = new Date(date);
+
+      // Filtrar los turnos del día seleccionado
+      this.eventsOfDay = this.events.filter((event) => {
+        const eventDate = event.start.toISOString().split("T")[0];
+        const selectedDateStr = selectedDate.toISOString().split("T")[0];
+        return eventDate === selectedDateStr;
+      });
+
+      // Mostrar el diálogo
+      this.selectedDate = selectedDate.toLocaleDateString();
+      this.dialogDia = true;
+    },
+    formatTime(date) {
+      // Formatear la hora en formato HH:MM
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    },
+
     setToCurrentDate() {
       this.value = new Date().toISOString().split("T")[0]; // Establecer la fecha actual en el formato YYYY-MM-DD
       this.updateCategories(); // Actualiza las categorías si es necesario
@@ -485,6 +628,16 @@ export default {
           fechaHoraInicio.getTime() + duracion * 60000
         );
 
+        const colorDark = this.isValidHexColor(turno.color_tratamiento)
+          ? this.darkenColor(turno.color_tratamiento, 0.4)
+          : null;
+        const colorLigth = this.isValidHexColor(turno.color_tratamiento)
+          ? this.lightenColor(turno.color_tratamiento, 0.7)
+          : null;
+
+        console.log("turno.color_tratamiento:", turno.color_tratamiento);
+        console.log("colorDark:", colorDark);
+
         const nombreConsultorio = turno.nombre_consultorio || "Sin consultorio";
         return {
           id_turno: turno.id_turno,
@@ -492,18 +645,63 @@ export default {
           id_consultorio: turno.id_consultorio,
           id_tratamiento: turno.id_tratamiento,
           nombre_tratamiento: turno.nombre_tratamiento,
-          name: `${turno.nombre_paciente} ${turno.apellido_paciente}`,
+          name: turno.nombre_paciente,
+          apellido_paciente: turno.apellido_paciente,
+          duracion_tratamiento: duracion,
           start: fechaHoraInicio,
           end: fechaHoraFin,
           color: turno.color_tratamiento,
+          colorDark: colorDark,
+          colorLigth: colorLigth,
           timed: true,
           category: nombreConsultorio,
         };
       });
 
-      console.log("Eventos generados:", eventos);
+      // console.log("Eventos generados:", eventos);
       eventos.sort((a, b) => a.start - b.start);
       this.events = eventos;
+    },
+    darkenColor(hex, factor = 0.2) {
+      if (!this.isValidHexColor(hex)) {
+        console.warn("Color no válido:", hex);
+        return hex; // Retorna el color original si no es válido
+      }
+
+      hex = hex.replace("#", "");
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+
+      const darkerR = Math.floor(r * (1 - factor));
+      const darkerG = Math.floor(g * (1 - factor));
+      const darkerB = Math.floor(b * (1 - factor));
+
+      const toHex = (value) => value.toString(16).padStart(2, "0");
+      return `#${toHex(darkerR)}${toHex(darkerG)}${toHex(darkerB)}`;
+    },
+
+    lightenColor(hex, factor = 0.2) {
+      if (!this.isValidHexColor(hex)) {
+        console.warn("Color no válido:", hex);
+        return hex; // Retorna el color original si no es válido
+      }
+
+      hex = hex.replace("#", "");
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+
+      // Aclarar los colores incrementando los valores RGB
+      const lighterR = Math.min(255, r + Math.floor((255 - r) * factor));
+      const lighterG = Math.min(255, g + Math.floor((255 - g) * factor));
+      const lighterB = Math.min(255, b + Math.floor((255 - b) * factor));
+
+      const toHex = (value) => value.toString(16).padStart(2, "0");
+      return `#${toHex(lighterR)}${toHex(lighterG)}${toHex(lighterB)}`;
+    },
+    isValidHexColor(hex) {
+      return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex);
     },
     onCalendarChange({ start }) {
       const date = new Date(start.date);
@@ -710,6 +908,12 @@ export default {
   async mounted() {
     const savedView = localStorage.getItem("defaultView");
     const savedWeekday = localStorage.getItem("weekday");
+    const savedDate = localStorage.getItem("selectedDate");
+    if (savedDate) {
+      this.value = savedDate; // Restaurar la fecha seleccionada
+    } else {
+      this.value = new Date().toISOString().split("T")[0]; // Usar la fecha actual si no hay fecha guardada
+    }
 
     if (savedWeekday) {
       console.log("savedWeekday:", savedWeekday);
@@ -743,7 +947,8 @@ export default {
   },
   watch: {
     value(newValue) {
-      this.updateCategories(); // Actualizar categorías cuando cambia la fecha
+      localStorage.setItem("selectedDate", newValue); // Guardar la fecha seleccionada
+      this.updateCategories();
     },
 
     type(newType) {
