@@ -205,7 +205,7 @@
                 small
                 class="ma-1"
                 close
-                @click:close="removeTratamiento(item)"
+                @click:close="removeTratamiento(item.id_tratamiento)"
               >
                 {{ item.nombre }}
               </v-chip>
@@ -464,9 +464,8 @@ export default {
       );
     },
     removeTratamiento(item) {
-      // Filtra el tratamiento eliminado del array
       this.selectedTratamientos = this.selectedTratamientos.filter(
-        (id) => id !== item.id_tratamiento
+        (id) => id.id_tratamiento !== item
       );
     },
     closeDialog() {

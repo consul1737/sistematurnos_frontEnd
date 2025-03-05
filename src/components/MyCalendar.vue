@@ -205,7 +205,7 @@
                     class="text-center"
                     :style="{
                       backgroundColor: event.colorLigth,
-                      color: event.color,
+                      color: event.colorDark,
                     }"
                     v-bind="attrs"
                     v-on="on"
@@ -291,7 +291,7 @@
           <v-btn icon dark @click="dialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          <v-btn v-if="isEdit" @click="eliminarTurno" icon dark>
+          <v-btn v-if="isEdit" @click="handleEliminarTurno" icon dark>
             <v-icon>mdi-delete</v-icon>
           </v-btn>
           <v-toolbar-title>{{
@@ -495,6 +495,21 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog v-model="elimiarTurno" max-width="600">
+      <v-card>
+        <v-toolbar flat height="50px" tile dark color="red">
+          <v-toolbar-title> Eliminar Turno </v-toolbar-title>
+        </v-toolbar>
+        <v-card-text class="text-h6 font-weight-bold my-2">
+          ¿Estás seguro de que deseas eliminar este turno?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="red" text @click="elimiarTurno = false">Cancelar</v-btn>
+          <v-btn color="green" text @click="eliminarTurno">Aceptar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -528,6 +543,7 @@ export default {
     events: [],
     dialog: false,
     dialogDia: false,
+    elimiarTurno: false,
     isEdit: false,
     pacientes: [],
     consultorios: [],
@@ -555,6 +571,9 @@ export default {
   }),
 
   methods: {
+    handleEliminarTurno() {
+      this.elimiarTurno = true;
+    },
     handleClickMore({ date }) {
       // Convertir la fecha a un objeto Date
       const selectedDate = new Date(date);
@@ -685,6 +704,10 @@ export default {
       }
 
       hex = hex.replace("#", "");
+
+      if (hex.length === 8) {
+        hex = hex.substring(0, 6);
+      }
       const r = parseInt(hex.substring(0, 2), 16);
       const g = parseInt(hex.substring(2, 4), 16);
       const b = parseInt(hex.substring(4, 6), 16);
@@ -704,6 +727,9 @@ export default {
       }
 
       hex = hex.replace("#", "");
+      if (hex.length === 8) {
+        hex = hex.substring(0, 6);
+      }
       const r = parseInt(hex.substring(0, 2), 16);
       const g = parseInt(hex.substring(2, 4), 16);
       const b = parseInt(hex.substring(4, 6), 16);
@@ -717,8 +743,9 @@ export default {
       return `#${toHex(lighterR)}${toHex(lighterG)}${toHex(lighterB)}`;
     },
     isValidHexColor(hex) {
-      return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex);
+      return /^#([A-Fa-f0-9]{6}([A-Fa-f0-9]{2})?|[A-Fa-f0-9]{3})$/.test(hex);
     },
+
     onCalendarChange({ start }) {
       const date = new Date(start.date);
       this.currentMonth = date.getUTCMonth();
@@ -912,6 +939,7 @@ export default {
             this.$toast.error("Error al eliminar el turno.");
           });
       }
+      this.elimiarTurno = false;
     },
     onDateChange(newDate) {
       this.picker = newDate; // Actualizar la fecha seleccionada
