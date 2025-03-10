@@ -1,34 +1,58 @@
 <template>
-  <v-container>
-    <v-row>
-      <v-col cols="12">
-        <v-card-title card-title primary-title
+  <v-container fluid style="position: relative">
+    <v-row class="fill-height ma-0 px-12">
+      <v-col
+        cols="12"
+        class="ma-0 d-flex align-lg-center justify-space-between"
+        style="border: #8e8e8e 0.3px solid; border-radius: 0.2rem; height: 50px"
+      >
+        <v-card-title cols="9" card-title primary-title class="text-h5"
           >📅 Calendario de turnos</v-card-title
         >
+        <div cols="3" class="d-flex align-center">
+          <v-col class="d-flex flex-column align-center pa-6">
+            <v-btn
+              color="primary"
+              class="ma-3"
+              style="width: 100%"
+              @click="handleCreateTurno"
+              >+ Nuevo Turno</v-btn
+            >
+          </v-col>
+          <v-col class="d-flex flex-column align-center pa-6">
+            <v-btn @click="configCob = !configCob" icon class="ma-3">
+              <v-icon>mdi-cog-outline</v-icon>
+            </v-btn>
+          </v-col>
+        </div>
       </v-col>
-      <v-col cols="4" class="d-flex flex-column align-center pa-6">
-        <v-btn
-          color="primary"
-          class="ma-3"
-          style="width: 100%"
-          @click="handleCreateTurno"
-          >+ Nuevo Turno</v-btn
-        >
-      </v-col>
+      <v-col
+        cols="12"
+        class="ma-0 d-flex align-lg-center justify-space-between"
+        style="
+          position: relative;
+          border: #8e8e8e 0.3px solid;
+          border-radius: 0.2rem;
+          height: 70px;
+        "
+      >
+        <v-col cols="5">
+          <div class="d-flex align-center">
+            <v-btn class="ma-1" height="20px" small outlined @click="prev">
+              <v-icon>mdi-chevron-left</v-icon>
+            </v-btn>
+            <v-btn class="ma-2" height="20px" small outlined @click="next">
+              <v-icon>mdi-chevron-right</v-icon>
+            </v-btn>
 
-      <v-col cols="8" class="d-flex flex-column align-center pa-6">
-        <v-select
-          v-model="weekday"
-          :items="weekdays"
-          dense
-          outlined
-          hide-details
-          label="Días de la semana a mostrar"
-          class="ma-2"
-        ></v-select>
-      </v-col>
-      <!--calendario-->
-      <v-col cols="12">
+            <v-toolbar-title
+              v-if="$refs.calendar && $refs.calendar.title"
+              class="text-capitalize text-subtitle-1"
+            >
+              {{ $refs.calendar.title.toUpperCase() }}
+            </v-toolbar-title>
+          </div>
+        </v-col>
         <section
           style="
             display: flex;
@@ -36,40 +60,51 @@
             margin: 10px 50px;
           "
         >
-          <div class="d-flex align-center">
-            <v-btn class="ma-1" small outlined @click="prev">
-              <v-icon>mdi-chevron-left</v-icon>
-            </v-btn>
-            <v-btn class="ma-1" small outlined @click="next">
-              <v-icon>mdi-chevron-right</v-icon>
-            </v-btn>
-
-            <v-toolbar-title v-if="$refs.calendar && $refs.calendar.title">
-              {{ $refs.calendar.title.toUpperCase() }}
-            </v-toolbar-title>
-          </div>
-
           <v-btn-toggle v-model="type" outlined class="d-flex">
-            <v-btn value="month">
+            <v-btn
+              value="month"
+              height="35px"
+              class="text-capitalize text-subtitle-2"
+            >
               <span class="hidden-sm-and-down">Mes</span>
             </v-btn>
-            <v-btn @click="setToCurrentDate" value="week">
+            <v-btn
+              @click="setToCurrentDate"
+              value="week"
+              height="35px"
+              class="text-capitalize text-subtitle-2"
+            >
               <span class="hidden-sm-and-down">Semana</span>
             </v-btn>
-            <v-btn @click="setToCurrentDate" value="day">
+            <v-btn
+              @click="setToCurrentDate"
+              value="day"
+              height="35px"
+              class="text-capitalize text-subtitle-2"
+            >
               <span class="hidden-sm-and-down">Diario</span>
             </v-btn>
-            <v-btn value="list">
-              <span class="hidden-sm-and-down">Lista</span>
+            <v-btn
+              value="list"
+              height="35px"
+              class="text-capitalize text-subtitle-2"
+            >
+              <span class="hidden-sm-and-down">Agenda</span>
             </v-btn>
           </v-btn-toggle>
         </section>
-
-        <v-sheet height="600" class="pa-10">
+      </v-col>
+      <!--calendario-->
+      <v-col
+        cols="12"
+        class="pa-0 border-b-lg"
+        style="border: #8e8e8e 0.3px solid; border-radius: 0.2rem"
+      >
+        <v-sheet height="fill-height" width="99.9%">
           <v-container v-show="type === 'list'">
             <v-card class="mt-4">
               <v-card-title>Eventos del mes</v-card-title>
-              <v-list>
+              <v-list class="overflow-y-auto" style="max-height: 400px">
                 <template v-if="Object.keys(groupedEventsByDay).length === 0">
                   <!-- Si no hay eventos, mostrar el alert -->
                   <v-list-item>
@@ -126,7 +161,7 @@
                                 ></span>
                                 <span
                                   class="font-weight-bold"
-                                  style="font-size: 1.1rem"
+                                  style="font-size: 1rem"
                                 >
                                   {{
                                     new Date(event.start).toLocaleTimeString(
@@ -150,7 +185,7 @@
                                   {{ event.nombre_tratamiento }}
                                 </span>
                                 -
-                                {{ event.name }}
+                                {{ event.name }} {{ event.apellido_paciente }}
                               </v-list-item-title>
                             </v-list-item-content>
                           </v-list-item>
@@ -187,6 +222,10 @@
             @change="onCalendarChange"
             @click:event="showEvent"
             @click:more="handleClickMore"
+            :interval-height="60"
+            :interval-count="intervalCount"
+            :interval-minutes="intervalMinutes"
+            :first-time="'07:00'"
             locale="es"
           >
             <template v-slot:event="{ event }">
@@ -230,6 +269,7 @@
                         new Date(event.start).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
+                          hour12: false,
                         })
                       }}
                       {{ event.name }} {{ event.apellido_paciente }}</span
@@ -510,6 +550,42 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-navigation-drawer
+      v-model="configCob"
+      :hide-overlay="true"
+      right
+      absolute
+      temporary
+      width="350"
+    >
+      <v-toolbar flat height="50px" tile dark color="primary">
+        <v-btn icon dark @click="configCob = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+
+        <v-toolbar-title>Configura la vista</v-toolbar-title>
+      </v-toolbar>
+      <div class="pa-4">
+        <div class="font-weight-bold my-4">Dias de la semana a mostrar</div>
+        <v-select
+          v-model="weekday"
+          :items="weekdays"
+          dense
+          outlined
+          hide-details
+        ></v-select>
+        <hr class="my-4" style="border-color: #ccc; width: 100%" />
+        <div class="font-weight-bold my-4">Intervalos de hora</div>
+        <v-slider
+          v-model="intervalMinutes"
+          :min="15"
+          :max="60"
+          :step="15"
+          label="Cada x minutos"
+          thumb-label="always"
+        />
+      </div>
+    </v-navigation-drawer>
   </v-container>
 </template>
 
@@ -518,6 +594,7 @@ import axios from "axios";
 export default {
   data: () => ({
     turnos: [],
+    intervalMinutes: parseInt(localStorage.getItem("intervalMinutes")) || 30,
     type: localStorage.getItem("defaultView") || "day",
     today: new Date().toISOString().slice(0, 10),
     types: [
@@ -528,9 +605,9 @@ export default {
     ],
     weekday: localStorage.getItem("weekday") || [1, 2, 3, 4, 5, 6, 0],
     weekdays: [
+      { text: "Lun - Vie", value: [1, 2, 3, 4, 5] },
       { text: "Lun - Sab", value: [1, 2, 3, 4, 5, 6] },
       { text: "Lun - Dom", value: [1, 2, 3, 4, 5, 6, 0] },
-      { text: "Lun - Vie", value: [1, 2, 3, 4, 5] },
     ],
     value:
       localStorage.getItem("selectedDate") ||
@@ -544,6 +621,7 @@ export default {
     dialog: false,
     dialogDia: false,
     elimiarTurno: false,
+    configCob: false,
     isEdit: false,
     pacientes: [],
     consultorios: [],
@@ -571,6 +649,9 @@ export default {
   }),
 
   methods: {
+    handleConfigCob() {
+      this.configCob = true;
+    },
     handleEliminarTurno() {
       this.elimiarTurno = true;
     },
@@ -594,6 +675,7 @@ export default {
       return date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       });
     },
 
@@ -990,6 +1072,9 @@ export default {
     });
   },
   watch: {
+    intervalMinutes(newVal) {
+      localStorage.setItem("intervalMinutes", newVal);
+    },
     value(newValue) {
       localStorage.setItem("selectedDate", newValue); // Guardar la fecha seleccionada
       this.updateCategories();
@@ -1116,6 +1201,18 @@ export default {
         this.nuevoTurno.fecha.trim() !== "" && // Asegurarse de que la fecha no sea una cadena vacía
         this.nuevoTurno.hora.trim() !== "" // Asegurarse de que la hora no sea una cadena vacía
       );
+    },
+    intervalCount() {
+      if (this.intervalMinutes === 15) {
+        return 64; // 15 minutos → 64 intervalos
+      } else if (this.intervalMinutes === 30) {
+        return 32; // 30 minutos → 32 intervalos
+      } else if (this.intervalMinutes === 45) {
+        return 24; // 45 minutos → 24 intervalos
+      } else if (this.intervalMinutes === 60) {
+        return 16; // 60 minutos → 16 intervalos
+      }
+      return 32; // valor por defecto, en caso de que algo falle
     },
   },
 };

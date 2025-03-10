@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer app permanent>
+  <v-navigation-drawer expand-on-hover absolute permanent style="z-index: 100">
     <v-list>
       <!-- Elemento de menú para Profile -->
       <v-list-item to="/profile">
